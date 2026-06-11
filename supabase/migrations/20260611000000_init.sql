@@ -1,4 +1,6 @@
--- Schéma RedionCup : à exécuter dans l'éditeur SQL de votre projet Supabase.
+-- Migration initiale RedionCup : tables joueurs + événements de points.
+-- Appliquée automatiquement par l'intégration GitHub de Supabase,
+-- ou manuellement via l'éditeur SQL du dashboard.
 
 create table if not exists players (
   id uuid primary key,
@@ -22,12 +24,32 @@ create table if not exists events (
 alter table players enable row level security;
 alter table events enable row level security;
 
+drop policy if exists "players lecture publique" on players;
+drop policy if exists "players écriture publique" on players;
+drop policy if exists "players maj publique" on players;
+drop policy if exists "events lecture publique" on events;
+drop policy if exists "events écriture publique" on events;
+
 create policy "players lecture publique" on players for select using (true);
 create policy "players écriture publique" on players for insert with check (true);
 create policy "players maj publique" on players for update using (true);
 create policy "events lecture publique" on events for select using (true);
 create policy "events écriture publique" on events for insert with check (true);
 
--- Active le temps réel sur les deux tables (classement live)
-alter publication supabase_realtime add table players;
-alter publication supabase_realtime add table events;
+-- Active le temps réel sur les deux tables (classement live),
+-- sans échouer si elles sont déjà dans la publication.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and tablename = 'players'
+  ) then
+    alter publication supabase_realtime add table players;
+  end if;
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and tablename = 'events'
+  ) then
+    alter publication supabase_realtime add table events;
+  end if;
+end $$;

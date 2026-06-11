@@ -50,9 +50,10 @@ export default function Connections() {
           <StatusPill on={isOnline} onLabel="Connecté" />
         </div>
         <p className="conn-desc">
-          Classement temps réel partagé entre tous les parieurs. Configuration :
-          créer un projet sur supabase.com, exécuter <code>supabase/schema.sql</code>,
-          puis renseigner <code>VITE_SUPABASE_URL</code> et <code>VITE_SUPABASE_ANON_KEY</code>.
+          Classement temps réel partagé entre tous les parieurs. Le schéma SQL
+          (<code>supabase/migrations/</code>) est appliqué automatiquement par
+          l’intégration GitHub de Supabase. Renseigner ensuite{' '}
+          <code>VITE_SUPABASE_URL</code> et <code>VITE_SUPABASE_ANON_KEY</code>.
         </p>
         {isOnline && (
           <div className="conn-row">

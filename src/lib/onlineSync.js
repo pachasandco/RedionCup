@@ -1,7 +1,7 @@
 import { supabase, isOnline } from './supabase.js'
 
 // Synchronisation multijoueur via Supabase.
-// Tables attendues (voir supabase/schema.sql) :
+// Tables attendues (voir supabase/migrations/) :
 //   players(id uuid, name text, avatar text)
 //   events(id, player_id, match_id, type, points, label, created_at)
 // Le classement est la somme des points des events de chaque joueur,

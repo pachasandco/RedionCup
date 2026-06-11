@@ -45,8 +45,12 @@ copiant `.env.example` vers `.env` et en renseignant sa clé :
 Classement temps réel partagé entre tous les parieurs (les adversaires simulés sont
 alors remplacés par les vrais joueurs) :
 1. Créer un projet gratuit sur [supabase.com](https://supabase.com)
-2. Exécuter `supabase/schema.sql` dans l'éditeur SQL du projet (tables + temps réel)
+2. Appliquer le schéma : automatique si l'**intégration GitHub de Supabase** est
+   connectée au dépôt (elle exécute `supabase/migrations/` à chaque push sur la
+   branche de production) ; sinon, copier le contenu de
+   `supabase/migrations/20260611000000_init.sql` dans l'éditeur SQL du dashboard
 3. Renseigner `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` dans `.env`
+   (valeurs dans Settings → API du projet Supabase)
 
 Chaque joueur reçoit un pseudo modifiable dans l'onglet Connexions ; les points
 (pronos + quiz) sont poussés dans la table `events` et le classement se
