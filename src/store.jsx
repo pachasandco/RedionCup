@@ -32,18 +32,17 @@ function reducer(state, action) {
       scores[USER_ID] += userResult.points
       history.push({ matchId, playerId: USER_ID, type: 'match', ...userResult })
 
-      // Adversaires simulés (uniquement en mode local : en ligne,
-      // les vrais joueurs arrivent via Supabase)
-      if (!isOnline) {
-        for (const p of PLAYERS) {
-          if (p.id === USER_ID) continue
-          const result = matchPoints(botPrediction(p.id, matchId), actual)
-          scores[p.id] += result.points
-          history.push({ matchId, playerId: p.id, type: 'match', ...result })
-          const quiz = botQuizResult(p.id, matchId)
-          scores[p.id] += quiz.points
-          history.push({ matchId, playerId: p.id, type: 'quiz', points: quiz.points, label: `Quiz ${quiz.level} : ${quiz.correct}/3` })
-        }
+      // Adversaires simulés : toujours calculés localement. En ligne, le
+      // classement affiché vient de Supabase et les ignore ; ils servent de
+      // repli automatique si la base est injoignable.
+      for (const p of PLAYERS) {
+        if (p.id === USER_ID) continue
+        const result = matchPoints(botPrediction(p.id, matchId), actual)
+        scores[p.id] += result.points
+        history.push({ matchId, playerId: p.id, type: 'match', ...result })
+        const quiz = botQuizResult(p.id, matchId)
+        scores[p.id] += quiz.points
+        history.push({ matchId, playerId: p.id, type: 'quiz', points: quiz.points, label: `Quiz ${quiz.level} : ${quiz.correct}/3` })
       }
 
       return { ...state, played: [...state.played, matchId], scores, history }
@@ -155,6 +154,6 @@ export function useStore() {
 // Joueurs + scores du classement : vrais joueurs (Supabase) ou démo locale
 export function usePlayers() {
   const { state, remote } = useStore()
-  if (isOnline && remote) return remote
+  if (isOnline && remote?.players?.length) return remote
   return { players: PLAYERS, scores: state.scores }
 }
