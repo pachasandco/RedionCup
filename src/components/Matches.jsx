@@ -1,8 +1,13 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
 import { useStore } from '../store.jsx'
-import { MATCHES, matchPoints } from '../data.js'
+import { matchPoints } from '../data.js'
+import { isOnline } from '../lib/supabase.js'
+import { pushEvent } from '../lib/onlineSync.js'
+import { notify } from '../lib/notify.js'
+import { stadiumFlash, punch, shake } from '../lib/fx.js'
+import { hasLiveData } from '../lib/footballData.js'
 import Quiz from './Quiz.jsx'
 
 function Stepper({ value, onChange, disabled }) {
@@ -18,22 +23,34 @@ function Stepper({ value, onChange, disabled }) {
 }
 
 function MatchCard({ match, index }) {
-  const { state, dispatch, flyPoints } = useStore()
+  const { state, dispatch, flyPoints, refreshBoard } = useStore()
   const played = state.played.includes(match.id)
   const pred = state.predictions[match.id]
   const quiz = state.quizDone[match.id]
   const [showQuiz, setShowQuiz] = useState(false)
+  const cardRef = useRef(null)
 
   const setPred = (h, a) => dispatch({ type: 'SET_PREDICTION', matchId: match.id, h, a })
 
   const play = () => {
+    if (!match.actual) return
     const result = matchPoints(pred, match.actual)
-    dispatch({ type: 'PLAY_MATCH', matchId: match.id })
+    dispatch({ type: 'PLAY_MATCH', matchId: match.id, actual: match.actual })
+
     if (result.points > 0) {
       flyPoints(result.points)
+      punch(cardRef.current)
+      notify('⚽ RedionCup', `${result.label} +${result.points} pts sur ${match.home.name} – ${match.away.name}`)
       if (result.points >= 10) {
+        stadiumFlash()
         confetti({ particleCount: 120, spread: 75, origin: { y: 0.6 }, colors: ['#ffd700', '#22c55e', '#ffffff'] })
       }
+    } else {
+      shake(cardRef.current)
+    }
+
+    if (isOnline) {
+      pushEvent({ matchId: match.id, type: 'match', points: result.points, label: result.label }).then(refreshBoard)
     }
   }
 
@@ -41,17 +58,19 @@ function MatchCard({ match, index }) {
   const badgeClass = result
     ? result.points >= 10 ? 'exact' : result.points > 0 ? 'win' : 'lose'
     : ''
+  const awaitingResult = !played && !match.actual // vrai match pas encore terminé
 
   return (
     <motion.div
+      ref={cardRef}
       className="match-card"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.06 }}
+      transition={{ delay: Math.min(index, 8) * 0.06 }}
     >
       <div className="match-meta">
-        <span className="group-pill">Groupe {match.group}</span>
-        <span>{match.date} · {match.stadium}</span>
+        <span className="group-pill">{match.live ? match.group : `Groupe ${match.group}`}</span>
+        <span>{match.date}{match.stadium ? ` · ${match.stadium}` : ''}</span>
       </div>
 
       <div className="match-row">
@@ -88,9 +107,15 @@ function MatchCard({ match, index }) {
       )}
 
       <div className="match-actions">
-        {!played && (
+        {!played && awaitingResult && (
+          <span className="points-badge win">
+            ⏳ Prono enregistré — en attente du résultat officiel
+          </span>
+        )}
+
+        {!played && !awaitingResult && (
           <button className="btn btn-primary" onClick={play} disabled={!pred}>
-            {pred ? '🟢 Coup d’envoi !' : 'Choisis un score d’abord'}
+            {pred ? (match.live ? '🟢 Valider le résultat officiel' : '🟢 Coup d’envoi !') : 'Choisis un score d’abord'}
           </button>
         )}
 
@@ -134,14 +159,18 @@ function MatchCard({ match, index }) {
 }
 
 export default function Matches() {
+  const { matches, liveError } = useStore()
   return (
     <div>
-      <h2 className="section-title">Phase de groupes</h2>
+      <h2 className="section-title">
+        {hasLiveData ? 'Coupe du Monde · matchs officiels' : 'Phase de groupes'}
+      </h2>
       <p className="section-sub">
         Pronostique le score, lance le coup d’envoi, puis joue le quiz pour gagner des points bonus.
         Barème : score exact +10 · bonne différence +7 · bon résultat +5.
+        {liveError && ` ⚠️ Données live indisponibles (${liveError}) : matchs de démo affichés.`}
       </p>
-      {MATCHES.map((m, i) => (
+      {matches.map((m, i) => (
         <MatchCard key={m.id} match={m} index={i} />
       ))}
     </div>

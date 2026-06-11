@@ -33,21 +33,49 @@ Après chaque match joué, un quiz de **3 questions** permet de se rattraper… 
 - Révélation du score finale en ressort, feedback vert/rouge animé sur les réponses du quiz.
 
 ### Autres
-- 5 adversaires simulés (Sofia, Karim, Léa, Marco, Awa) qui pronostiquent et jouent les quiz.
+- 5 adversaires simulés (Sofia, Karim, Léa, Marco, Awa) qui pronostiquent et jouent les quiz (mode démo).
 - Progression sauvegardée dans le navigateur (localStorage) + bouton de réinitialisation.
+
+## 🔌 Connecteurs (onglet ⚙️ Connexions)
+
+L'app fonctionne **sans configuration** en mode démo. Chaque service s'active en
+copiant `.env.example` vers `.env` et en renseignant sa clé :
+
+### 👥 Multijoueur réel — Supabase
+Classement temps réel partagé entre tous les parieurs (les adversaires simulés sont
+alors remplacés par les vrais joueurs) :
+1. Créer un projet gratuit sur [supabase.com](https://supabase.com)
+2. Exécuter `supabase/schema.sql` dans l'éditeur SQL du projet (tables + temps réel)
+3. Renseigner `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` dans `.env`
+
+Chaque joueur reçoit un pseudo modifiable dans l'onglet Connexions ; les points
+(pronos + quiz) sont poussés dans la table `events` et le classement se
+synchronise en direct via Supabase Realtime.
+
+### 📡 Vrais matchs & scores — football-data.org
+Remplace les matchs de démo par le vrai calendrier de la Coupe du Monde
+(compétition `WC`, API v4) :
+1. Clé gratuite sur [football-data.org](https://www.football-data.org/client/register)
+2. Renseigner `VITE_FOOTBALL_DATA_TOKEN` dans `.env`
+
+En dev, les requêtes passent par le proxy Vite (`/football-api`) pour contourner
+CORS ; en production, prévoir un petit proxy équivalent.
+Les matchs non terminés affichent « en attente du résultat officiel » ; dès que
+l'API renvoie `FINISHED`, le bouton « Valider le résultat officiel » déclenche
+le calcul des points.
+
+### 🔔 Notifications navigateur
+Activables dans l'onglet Connexions : notification à chaque gain de points
+(match ou quiz), avec bouton de test.
 
 ## 🛠️ Stack technique
 
 | Outil | Rôle |
 |---|---|
 | [React](https://react.dev) + [Vite](https://vitejs.dev) | Framework et build ultra-rapide |
-| [Framer Motion](https://www.framer.com/motion/) | Toutes les animations (layout, springs, transitions) |
+| [Framer Motion](https://www.framer.com/motion/) | Animations (layout, springs, transitions) |
+| [GSAP](https://gsap.com) | Effets cinématiques : flash de stade, punch/secousse des cartes |
+| [Lottie](https://github.com/Gamote/lottie-react) (`lottie-react`) | Trophée animé (podium, quiz parfait) |
 | [canvas-confetti](https://github.com/catdad/canvas-confetti) | Pluies de confettis |
+| [@supabase/supabase-js](https://supabase.com/docs/reference/javascript) | Multijoueur temps réel |
 | CSS custom (glassmorphism) | Thème sombre / or / vert pelouse |
-
-## 🔌 Évolutions possibles
-
-- **Multijoueur réel** : Supabase ou Firebase (auth + base temps réel) pour remplacer les adversaires simulés.
-- **Vrais matchs et scores en direct** : connecteur vers [football-data.org](https://www.football-data.org/) ou [API-Football](https://www.api-football.com/).
-- **Animations avancées** : Lottie (`lottie-react`) pour des trophées/coupes animés, GSAP pour des séquences complexes.
-- **Notifications** : rappel avant chaque coup d'envoi.

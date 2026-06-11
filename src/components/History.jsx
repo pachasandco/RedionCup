@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion'
 import { useStore } from '../store.jsx'
-import { MATCHES, USER_ID } from '../data.js'
+import { USER_ID } from '../data.js'
 
 export default function History() {
-  const { state } = useStore()
-  const playedMatches = MATCHES.filter((m) => state.played.includes(m.id))
+  const { state, matches } = useStore()
+  const playedMatches = matches.filter((m) => state.played.includes(m.id))
 
   if (playedMatches.length === 0) {
     return (

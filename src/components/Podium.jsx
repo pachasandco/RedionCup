@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import confetti from 'canvas-confetti'
-import { useStore } from '../store.jsx'
-import { PLAYERS } from '../data.js'
+import Lottie from 'lottie-react'
+import { usePlayers } from '../store.jsx'
+import trophyAnim from '../assets/trophy.json'
 
 const SLOTS = [
   { place: 2, medal: '🥈', barClass: 'silver', height: 120, delay: 0.25 },
@@ -11,9 +12,9 @@ const SLOTS = [
 ]
 
 export default function Podium() {
-  const { state } = useStore()
-  const ranked = [...PLAYERS].sort((a, b) => state.scores[b.id] - state.scores[a.id])
-  const hasPoints = ranked.some((p) => state.scores[p.id] > 0)
+  const { players, scores } = usePlayers()
+  const ranked = [...players].sort((a, b) => (scores[b.id] ?? 0) - (scores[a.id] ?? 0))
+  const hasPoints = ranked.some((p) => (scores[p.id] ?? 0) > 0)
 
   useEffect(() => {
     if (!hasPoints) return
@@ -35,9 +36,17 @@ export default function Podium() {
   return (
     <div className="podium-wrap">
       <h2 className="section-title">🏆 Podium</h2>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.6 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.6, type: 'spring', stiffness: 200, damping: 14 }}
+      >
+        <Lottie animationData={trophyAnim} loop style={{ width: 110, height: 110, margin: '0 auto' }} />
+      </motion.div>
       <div className="podium">
         {SLOTS.map(({ place, medal, barClass, height, delay }) => {
           const player = ranked[place - 1]
+          if (!player) return <div className="podium-col" key={place} />
           return (
             <div className="podium-col" key={place}>
               <motion.span
@@ -50,7 +59,7 @@ export default function Podium() {
               </motion.span>
               <span className="avatar">{player.avatar}</span>
               <span className="pname">{player.name}{player.isUser ? ' (toi)' : ''}</span>
-              <span className="ppoints">{state.scores[player.id]} pts</span>
+              <span className="ppoints">{scores[player.id] ?? 0} pts</span>
               <motion.div
                 className={`podium-bar ${barClass}`}
                 initial={{ height: 0 }}

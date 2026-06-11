@@ -1,5 +1,8 @@
 import { createContext, useContext, useEffect, useReducer, useState, useCallback } from 'react'
 import { MATCHES, PLAYERS, USER_ID, matchPoints, botPrediction, botQuizResult } from './data'
+import { isOnline } from './lib/supabase.js'
+import { ensurePlayer, fetchBoard, subscribeBoard } from './lib/onlineSync.js'
+import { hasLiveData, fetchWorldCupMatches } from './lib/footballData.js'
 
 const STORAGE_KEY = 'redioncup-v1'
 
@@ -19,29 +22,31 @@ function reducer(state, action) {
       return { ...state, predictions: { ...state.predictions, [matchId]: { h, a } } }
     }
     case 'PLAY_MATCH': {
-      const { matchId } = action
-      if (state.played.includes(matchId)) return state
-      const match = MATCHES.find((m) => m.id === matchId)
+      const { matchId, actual } = action
+      if (state.played.includes(matchId) || !actual) return state
       const scores = { ...state.scores }
       const history = [...state.history]
 
       // Points de l'utilisateur
-      const userResult = matchPoints(state.predictions[matchId], match.actual)
+      const userResult = matchPoints(state.predictions[matchId], actual)
       scores[USER_ID] += userResult.points
       history.push({ matchId, playerId: USER_ID, type: 'match', ...userResult })
 
-      // Points des adversaires (prono + quiz automatiques)
-      for (const p of PLAYERS) {
-        if (p.id === USER_ID) continue
-        const result = matchPoints(botPrediction(p.id, matchId), match.actual)
-        scores[p.id] += result.points
-        history.push({ matchId, playerId: p.id, type: 'match', ...result })
-        const quiz = botQuizResult(p.id, matchId)
-        scores[p.id] += quiz.points
-        history.push({ matchId, playerId: p.id, type: 'quiz', points: quiz.points, label: `Quiz ${quiz.level} : ${quiz.correct}/3` })
+      // Adversaires simulés (uniquement en mode local : en ligne,
+      // les vrais joueurs arrivent via Supabase)
+      if (!isOnline) {
+        for (const p of PLAYERS) {
+          if (p.id === USER_ID) continue
+          const result = matchPoints(botPrediction(p.id, matchId), actual)
+          scores[p.id] += result.points
+          history.push({ matchId, playerId: p.id, type: 'match', ...result })
+          const quiz = botQuizResult(p.id, matchId)
+          scores[p.id] += quiz.points
+          history.push({ matchId, playerId: p.id, type: 'quiz', points: quiz.points, label: `Quiz ${quiz.level} : ${quiz.correct}/3` })
+        }
       }
 
-      return { ...state, played: [...state.played, matchId], scores, history, lastUserGain: userResult.points }
+      return { ...state, played: [...state.played, matchId], scores, history }
     }
     case 'QUIZ_DONE': {
       const { matchId, level, correct, points } = action
@@ -73,10 +78,61 @@ const StoreContext = createContext(null)
 export function StoreProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, undefined, loadState)
   const [bursts, setBursts] = useState([]) // points volants "+X pts"
+  const [remote, setRemote] = useState(null) // classement multijoueur (Supabase)
+  const [matches, setMatches] = useState(MATCHES)
+  const [liveError, setLiveError] = useState(null)
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   }, [state])
+
+  // Multijoueur réel : enregistrement du joueur + classement temps réel
+  useEffect(() => {
+    if (!isOnline) return
+    let active = true
+    let unsubscribe = () => {}
+    const refresh = async () => {
+      try {
+        const board = await fetchBoard()
+        if (active) setRemote(board)
+      } catch (e) {
+        console.error('Supabase :', e)
+      }
+    }
+    ;(async () => {
+      try {
+        await ensurePlayer()
+        await refresh()
+        unsubscribe = subscribeBoard(refresh)
+      } catch (e) {
+        console.error('Supabase :', e)
+      }
+    })()
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [])
+
+  // Vrais matchs de Coupe du Monde via football-data.org
+  useEffect(() => {
+    if (!hasLiveData) return
+    fetchWorldCupMatches()
+      .then((ms) => {
+        if (ms?.length) setMatches(ms)
+        else setLiveError('Aucun match retourné par football-data.org')
+      })
+      .catch((e) => setLiveError(e.message))
+  }, [])
+
+  const refreshBoard = useCallback(async () => {
+    if (!isOnline) return
+    try {
+      setRemote(await fetchBoard())
+    } catch (e) {
+      console.error('Supabase :', e)
+    }
+  }, [])
 
   const flyPoints = useCallback((amount) => {
     if (amount <= 0) return
@@ -86,7 +142,7 @@ export function StoreProvider({ children }) {
   }, [])
 
   return (
-    <StoreContext.Provider value={{ state, dispatch, bursts, flyPoints }}>
+    <StoreContext.Provider value={{ state, dispatch, bursts, flyPoints, matches, remote, refreshBoard, liveError }}>
       {children}
     </StoreContext.Provider>
   )
@@ -94,4 +150,11 @@ export function StoreProvider({ children }) {
 
 export function useStore() {
   return useContext(StoreContext)
+}
+
+// Joueurs + scores du classement : vrais joueurs (Supabase) ou démo locale
+export function usePlayers() {
+  const { state, remote } = useStore()
+  if (isOnline && remote) return remote
+  return { players: PLAYERS, scores: state.scores }
 }

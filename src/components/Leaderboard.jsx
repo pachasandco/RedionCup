@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
-import { useStore } from '../store.jsx'
-import { PLAYERS } from '../data.js'
+import { usePlayers } from '../store.jsx'
+import { isOnline } from '../lib/supabase.js'
 import { useCountUp } from '../hooks.js'
 
 function Row({ player, rank, points }) {
@@ -25,16 +25,20 @@ function Row({ player, rank, points }) {
 }
 
 export default function Leaderboard() {
-  const { state } = useStore()
-  const ranked = [...PLAYERS].sort((a, b) => state.scores[b.id] - state.scores[a.id])
+  const { players, scores } = usePlayers()
+  const ranked = [...players].sort((a, b) => (scores[b.id] ?? 0) - (scores[a.id] ?? 0))
 
   return (
     <div>
       <h2 className="section-title">Classement général</h2>
-      <p className="section-sub">Le classement se réorganise en direct à chaque match et chaque quiz.</p>
+      <p className="section-sub">
+        {isOnline
+          ? '🟢 Multijoueur en ligne : le classement se synchronise en temps réel entre tous les parieurs.'
+          : 'Le classement se réorganise en direct à chaque match et chaque quiz.'}
+      </p>
       <div className="board">
         {ranked.map((p, i) => (
-          <Row key={p.id} player={p} rank={i + 1} points={state.scores[p.id]} />
+          <Row key={p.id} player={p} rank={i + 1} points={scores[p.id] ?? 0} />
         ))}
       </div>
     </div>

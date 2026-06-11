@@ -1,11 +1,17 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
+import Lottie from 'lottie-react'
 import { useStore } from '../store.jsx'
 import { QUIZ_LEVELS, getQuizQuestions } from '../data.js'
+import { isOnline } from '../lib/supabase.js'
+import { pushEvent } from '../lib/onlineSync.js'
+import { notify } from '../lib/notify.js'
+import { stadiumFlash } from '../lib/fx.js'
+import trophyAnim from '../assets/trophy.json'
 
 export default function Quiz({ match, matchIndex, onClose }) {
-  const { dispatch, flyPoints } = useStore()
+  const { dispatch, flyPoints, refreshBoard } = useStore()
   // Le niveau est verrouillé dès qu'il est choisi : pas de retour en arrière
   const [level, setLevel] = useState(null)
   const [questions, setQuestions] = useState([])
@@ -34,7 +40,12 @@ export default function Quiz({ match, matchIndex, onClose }) {
         const points = nextCorrect * QUIZ_LEVELS[level].perQuestion
         dispatch({ type: 'QUIZ_DONE', matchId: match.id, level, correct: nextCorrect, points })
         flyPoints(points)
+        notify('🧠 Quiz RedionCup', `${nextCorrect}/3 bonnes réponses : +${points} pts !`)
+        if (isOnline) {
+          pushEvent({ matchId: match.id, type: 'quiz', points, label: `Quiz ${level} : ${nextCorrect}/3` }).then(refreshBoard)
+        }
         if (nextCorrect === 3) {
+          stadiumFlash()
           confetti({ particleCount: 160, spread: 90, origin: { y: 0.5 }, colors: ['#ffd700', '#22c55e', '#ffffff'] })
         }
         setFinished(true)
@@ -138,7 +149,11 @@ export default function Quiz({ match, matchIndex, onClose }) {
         {/* Étape 3 : résultat */}
         {finished && (
           <motion.div className="quiz-result" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
-            <div className="big">{correct === 3 ? '🏆' : correct >= 2 ? '🎉' : correct === 1 ? '👍' : '😅'}</div>
+            {correct === 3 ? (
+              <Lottie animationData={trophyAnim} loop style={{ width: 120, height: 120, margin: '0 auto' }} />
+            ) : (
+              <div className="big">{correct >= 2 ? '🎉' : correct === 1 ? '👍' : '😅'}</div>
+            )}
             <h3>{correct}/3 bonnes réponses</h3>
             <motion.p
               className="gained"
