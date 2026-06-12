@@ -86,24 +86,18 @@ export function logoutDevice() {
 }
 
 // Resynchronise le joueur déjà inscrit vers Supabase (au cas où la ligne
-// aurait disparu, ex. inscription faite hors ligne). Idempotent.
+// aurait disparu, ex. inscription faite hors ligne). Idempotent — passe
+// par register_player, seule porte d'entrée en écriture sur players.
 export async function ensurePlayer() {
   if (!isOnline) return null
   const player = getLocalPlayer()
-  if (!player) return null
-  if (player.pin) {
-    await supabase.rpc('register_player', {
-      p_id: player.id,
-      p_name: player.name,
-      p_avatar: player.avatar,
-      p_pin: player.pin,
-    })
-  } else {
-    // Anciens comptes sans code : simple resync de la ligne
-    await supabase
-      .from('players')
-      .upsert({ id: player.id, name: player.name, avatar: player.avatar }, { onConflict: 'id', ignoreDuplicates: true })
-  }
+  if (!player?.pin) return player ?? null
+  await supabase.rpc('register_player', {
+    p_id: player.id,
+    p_name: player.name,
+    p_avatar: player.avatar,
+    p_pin: player.pin,
+  })
   return player
 }
 

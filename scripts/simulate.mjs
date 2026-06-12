@@ -25,15 +25,13 @@ const SIM_PLAYERS = [
 
 const expected = {} // totaux calculés localement, pour vérifier l'agrégat DB
 
-// — Inscription (même logique que registerPlayer dans l'app)
+// — Inscription via la fonction sécurisée (seule porte d'entrée en écriture)
 async function register({ name, avatar }) {
-  const { data: taken, error: checkError } = await supabase
-    .from('players').select('id').ilike('name', name).limit(1)
-  if (checkError) throw checkError
-  if (taken.length > 0) throw new Error(`« ${name} » est déjà pris`)
-  const player = { id: crypto.randomUUID(), name, avatar }
-  const { error } = await supabase.from('players').insert(player)
-  if (error) throw new Error(`insert ${name} : ${error.message}`)
+  const player = { id: crypto.randomUUID(), name, avatar, pin: '123456' }
+  const { error } = await supabase.rpc('register_player', {
+    p_id: player.id, p_name: name, p_avatar: avatar, p_pin: player.pin,
+  })
+  if (error) throw new Error(`inscription ${name} : ${error.message}`)
   return player
 }
 
