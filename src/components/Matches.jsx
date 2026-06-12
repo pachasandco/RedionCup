@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
 import { useStore } from '../store.jsx'
-import { matchPoints } from '../data.js'
+import { matchPoints, MATCH_POINTS } from '../data.js'
 import { isOnline } from '../lib/supabase.js'
 import { pushEvent, savePrediction } from '../lib/onlineSync.js'
 import { notify } from '../lib/notify.js'
@@ -52,7 +52,7 @@ function MatchCard({ match, index, now }) {
       flyPoints(result.points)
       punch(cardRef.current)
       notify('⚽ RedionCup', `${result.label} +${result.points} pts sur ${match.home.name} – ${match.away.name}`)
-      if (result.points >= 10) {
+      if (result.points >= MATCH_POINTS.exact) {
         stadiumFlash()
         confetti({ particleCount: 120, spread: 75, origin: { y: 0.6 }, colors: ['#ffd700', '#22c55e', '#ffffff'] })
       }
@@ -67,7 +67,7 @@ function MatchCard({ match, index, now }) {
 
   const result = played ? matchPoints(pred, match.actual) : null
   const badgeClass = result
-    ? result.points >= 10 ? 'exact' : result.points > 0 ? 'win' : 'lose'
+    ? result.points >= MATCH_POINTS.exact ? 'exact' : result.points > 0 ? 'win' : 'lose'
     : ''
   const awaitingResult = !played && !match.actual // vrai match pas encore terminé
   // Score final affiché dès que le match réel est terminé (même avant
@@ -206,7 +206,7 @@ export default function Matches() {
       </h2>
       <p className="section-sub">
         Pronostique le score, lance le coup d’envoi, puis joue le quiz pour gagner des points bonus.
-        Barème : score exact +10 · bonne différence +7 · bon résultat +5.
+        Barème : score exact +{MATCH_POINTS.exact} · bonne différence +{MATCH_POINTS.diff} · bon résultat +{MATCH_POINTS.outcome}.
         {liveError && ` ⚠️ Données live indisponibles (${liveError}) : matchs de démo affichés.`}
       </p>
       {matches.map((m, i) => (

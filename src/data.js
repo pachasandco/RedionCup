@@ -24,7 +24,7 @@ export const MATCHES = [
 ]
 
 // ---------- Barème ----------
-export const MATCH_POINTS = { exact: 10, diff: 7, outcome: 5 }
+export const MATCH_POINTS = { exact: 5, diff: 3, outcome: 2 }
 export const QUIZ_LEVELS = {
   facile: { label: 'Facile', emoji: '🟢', perQuestion: 2 },
   moyen: { label: 'Moyen', emoji: '🟠', perQuestion: 4 },
