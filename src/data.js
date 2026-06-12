@@ -38,7 +38,9 @@ export function matchPoints(pred, actual) {
     return { points: MATCH_POINTS.exact, label: 'Score exact !' }
   const predSign = Math.sign(pred.h - pred.a)
   const actualSign = Math.sign(actual.h - actual.a)
-  if (predSign === actualSign && pred.h - pred.a === actual.h - actual.a)
+  // Le +1 « bon écart » ne vaut que pour une victoire/défaite : un nul
+  // prédit donne mécaniquement l'écart 0, ce serait un bonus automatique.
+  if (predSign === actualSign && predSign !== 0 && pred.h - pred.a === actual.h - actual.a)
     return { points: MATCH_POINTS.diff, label: 'Bonne différence de buts' }
   if (predSign === actualSign)
     return { points: MATCH_POINTS.outcome, label: 'Bon résultat' }
