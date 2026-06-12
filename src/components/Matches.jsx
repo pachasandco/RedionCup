@@ -151,7 +151,9 @@ function MatchCard({ match, index, now }) {
           </motion.span>
         )}
 
-        {played && !quiz && (
+        {/* Quiz réservé aux joueurs qui avaient pronostiqué ce match :
+            pas de points de rattrapage sur les matchs déjà passés */}
+        {played && !quiz && pred && (
           <motion.button
             className="btn btn-gold"
             onClick={() => setShowQuiz(true)}
