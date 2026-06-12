@@ -120,6 +120,14 @@ function MatchCard({ match, index, now }) {
       )}
 
       <div className="match-actions">
+        {/* Le prono n'existe qu'après une action explicite : pour parier
+            0-0 sans toucher aux steppers, il faut ce bouton dédié */}
+        {!played && !locked && !pred && (
+          <button className="btn btn-ghost" onClick={() => setPred(0, 0)}>
+            🎯 Je pronostique 0 – 0
+          </button>
+        )}
+
         {!played && awaitingResult && !locked && pred && (
           <span className="points-badge win">
             ✏️ Prono enregistré — modifiable jusqu’au coup d’envoi
