@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useReducer, useState, useCallback } from 'react'
 import { MATCHES, PLAYERS, USER_ID, matchPoints, botPrediction, botQuizResult } from './data'
 import { isOnline } from './lib/supabase.js'
-import { ensurePlayer, fetchBoard, subscribeBoard } from './lib/onlineSync.js'
+import { ensurePlayer, getLocalPlayer, fetchBoard, subscribeBoard } from './lib/onlineSync.js'
 import { hasLiveData, fetchWorldCupMatches } from './lib/footballData.js'
 
 const STORAGE_KEY = 'redioncup-v1'
@@ -78,6 +78,7 @@ export function StoreProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, undefined, loadState)
   const [bursts, setBursts] = useState([]) // points volants "+X pts"
   const [remote, setRemote] = useState(null) // classement multijoueur (Supabase)
+  const [player, setPlayer] = useState(getLocalPlayer) // identité du joueur (null = onboarding)
   const [matches, setMatches] = useState(MATCHES)
   const [liveError, setLiveError] = useState(null)
 
@@ -133,6 +134,13 @@ export function StoreProvider({ children }) {
     }
   }, [])
 
+  // Adopte l'identité créée/récupérée par l'onboarding (inscription ou
+  // connexion multi-appareils) et entre dans l'app.
+  const adoptPlayer = useCallback((p) => {
+    setPlayer(p)
+    refreshBoard()
+  }, [refreshBoard])
+
   const flyPoints = useCallback((amount) => {
     if (amount <= 0) return
     const id = Date.now() + Math.random()
@@ -141,7 +149,7 @@ export function StoreProvider({ children }) {
   }, [])
 
   return (
-    <StoreContext.Provider value={{ state, dispatch, bursts, flyPoints, matches, remote, refreshBoard, liveError }}>
+    <StoreContext.Provider value={{ state, dispatch, bursts, flyPoints, matches, remote, refreshBoard, liveError, player, adoptPlayer }}>
       {children}
     </StoreContext.Provider>
   )
@@ -153,7 +161,12 @@ export function useStore() {
 
 // Joueurs + scores du classement : vrais joueurs (Supabase) ou démo locale
 export function usePlayers() {
-  const { state, remote } = useStore()
+  const { state, remote, player } = useStore()
   if (isOnline && remote?.players?.length) return remote
-  return { players: PLAYERS, scores: state.scores }
+  return {
+    players: PLAYERS.map((p) =>
+      p.isUser && player ? { ...p, name: player.name, avatar: player.avatar } : p
+    ),
+    scores: state.scores,
+  }
 }

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { isOnline } from '../lib/supabase.js'
 import { hasLiveData } from '../lib/footballData.js'
-import { getLocalPlayer, setLocalPlayerName, ensurePlayer } from '../lib/onlineSync.js'
+import { useStore } from '../store.jsx'
 import {
   notificationsSupported,
   notificationsEnabled,
@@ -16,9 +16,8 @@ function StatusPill({ on, onLabel = 'Activé', offLabel = 'Non configuré' }) {
 }
 
 export default function Connections() {
+  const { player } = useStore()
   const [notifOn, setNotifOn] = useState(notificationsEnabled())
-  const [name, setName] = useState(getLocalPlayer()?.name ?? '')
-  const [saved, setSaved] = useState(false)
 
   const toggleNotif = async () => {
     if (notifOn) {
@@ -27,13 +26,6 @@ export default function Connections() {
     } else {
       setNotifOn(await enableNotifications())
     }
-  }
-
-  const saveName = async () => {
-    setLocalPlayerName(name.trim())
-    await ensurePlayer() // pousse le nouveau nom vers Supabase
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
   }
 
   return (
@@ -55,31 +47,30 @@ export default function Connections() {
           l’intégration GitHub de Supabase. Renseigner ensuite{' '}
           <code>VITE_SUPABASE_URL</code> et <code>VITE_SUPABASE_ANON_KEY</code>.
         </p>
-        {isOnline && (
-          <div className="conn-row">
-            <input
-              className="input"
-              value={name}
-              maxLength={20}
-              placeholder="Ton pseudo"
-              onChange={(e) => setName(e.target.value)}
-            />
-            <button className="btn btn-primary" onClick={saveName} disabled={!name.trim()}>
-              {saved ? '✅ Enregistré' : 'Changer de pseudo'}
-            </button>
-          </div>
+        {player && (
+          <p className="conn-identity">
+            Inscrit·e en tant que <strong>{player.avatar} {player.name}</strong> 🔒
+            — le prénom est définitif et ne peut pas être modifié.
+            {player.pin && (
+              <>
+                <br />🔑 Code de connexion : <strong className="conn-pin">{player.pin}</strong>
+                {' '}— utilise-le avec ton prénom pour te connecter sur un autre appareil.
+              </>
+            )}
+          </p>
         )}
       </motion.div>
 
       <motion.div className="conn-card" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
         <div className="conn-head">
-          <span className="conn-title">📡 Vrais matchs & scores — football-data.org</span>
+          <span className="conn-title">📡 Vrais matchs & scores — openfootball (GitHub)</span>
           <StatusPill on={hasLiveData} onLabel="Connecté" />
         </div>
         <p className="conn-desc">
-          Remplace les matchs de démo par le vrai calendrier de la Coupe du Monde et
-          les scores officiels. Clé gratuite sur football-data.org, à renseigner dans{' '}
-          <code>VITE_FOOTBALL_DATA_TOKEN</code>.
+          Calendrier officiel et scores de la Coupe du Monde 2026 depuis le jeu de
+          données public <code>openfootball/worldcup.json</code> (mis à jour chaque
+          jour, sans clé API). Pour revenir aux matchs de démo :{' '}
+          <code>VITE_LIVE_SCORES=off</code>.
         </p>
       </motion.div>
 

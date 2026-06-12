@@ -17,28 +17,85 @@ export function getLocalPlayer() {
   }
 }
 
-export function setLocalPlayerName(name) {
-  const player = getLocalPlayer()
-  if (player) {
-    player.name = name
-    localStorage.setItem(PLAYER_KEY, JSON.stringify(player))
-  }
-}
-
 const AVATARS = ['🦁', '🦊', '🐺', '🐯', '🦅', '🐝', '🐸', '🐙', '🦈', '🦄']
 
+// Code de connexion à 6 chiffres : permet de retrouver son compte
+// sur un autre appareil (prénom + code).
+function makePin() {
+  return String(Math.floor(100000 + Math.random() * 900000))
+}
+
+// Inscription unique et définitive : un prénom, pas de changement possible.
+// L'identité (avec son code) est conservée en localStorage et l'unicité
+// du prénom est garantie côté base.
+export async function registerPlayer(rawName) {
+  const existing = getLocalPlayer()
+  if (existing) return existing
+
+  const name = rawName.trim().replace(/\s+/g, ' ')
+  if (name.length < 2) throw new Error('Ton prénom doit faire au moins 2 lettres.')
+
+  const player = {
+    id: crypto.randomUUID(),
+    name,
+    avatar: AVATARS[Math.floor(Math.random() * AVATARS.length)],
+    pin: makePin(),
+  }
+
+  // Unicité vérifiée en ligne ; si la base est injoignable, on inscrit
+  // quand même en local (même repli que le reste de l'app) et ensurePlayer
+  // resynchronisera le joueur plus tard.
+  if (isOnline) {
+    const { error } = await supabase.rpc('register_player', {
+      p_id: player.id,
+      p_name: player.name,
+      p_avatar: player.avatar,
+      p_pin: player.pin,
+    })
+    if (error?.code === '23505') {
+      throw new Error(`« ${name} » est déjà pris. Chaque prénom est unique !`)
+    }
+    if (error) console.warn('Supabase injoignable, inscription locale :', error.message)
+  }
+
+  localStorage.setItem(PLAYER_KEY, JSON.stringify(player))
+  return player
+}
+
+// Connexion depuis un autre appareil : prénom + code de connexion.
+export async function claimPlayer(rawName, rawPin) {
+  if (!isOnline) throw new Error('Connexion impossible hors ligne, réessaie plus tard.')
+  const name = rawName.trim()
+  const pin = rawPin.trim()
+  if (!name || !pin) throw new Error('Prénom et code requis.')
+  const { data, error } = await supabase.rpc('claim_player', { p_name: name, p_pin: pin })
+  if (error) throw new Error('Connexion impossible, réessaie dans un instant.')
+  const row = data?.[0]
+  if (!row) throw new Error('Prénom ou code incorrect.')
+  const player = { id: row.id, name: row.name, avatar: row.avatar, pin }
+  localStorage.setItem(PLAYER_KEY, JSON.stringify(player))
+  return player
+}
+
+// Resynchronise le joueur déjà inscrit vers Supabase (au cas où la ligne
+// aurait disparu, ex. inscription faite hors ligne). Idempotent.
 export async function ensurePlayer() {
   if (!isOnline) return null
-  let player = getLocalPlayer()
-  if (!player) {
-    player = {
-      id: crypto.randomUUID(),
-      name: `Parieur·se ${Math.floor(Math.random() * 900 + 100)}`,
-      avatar: AVATARS[Math.floor(Math.random() * AVATARS.length)],
-    }
-    localStorage.setItem(PLAYER_KEY, JSON.stringify(player))
+  const player = getLocalPlayer()
+  if (!player) return null
+  if (player.pin) {
+    await supabase.rpc('register_player', {
+      p_id: player.id,
+      p_name: player.name,
+      p_avatar: player.avatar,
+      p_pin: player.pin,
+    })
+  } else {
+    // Anciens comptes sans code : simple resync de la ligne
+    await supabase
+      .from('players')
+      .upsert({ id: player.id, name: player.name, avatar: player.avatar }, { onConflict: 'id', ignoreDuplicates: true })
   }
-  await supabase.from('players').upsert({ id: player.id, name: player.name, avatar: player.avatar })
   return player
 }
 

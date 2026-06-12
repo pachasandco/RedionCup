@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
 import Lottie from 'lottie-react'
@@ -8,7 +8,11 @@ import { isOnline } from '../lib/supabase.js'
 import { pushEvent } from '../lib/onlineSync.js'
 import { notify } from '../lib/notify.js'
 import { stadiumFlash } from '../lib/fx.js'
+import { playQuizCorrect } from '../lib/sound.js'
 import trophyAnim from '../assets/trophy.json'
+
+// 5 secondes par question : pas le temps d'aller chercher la réponse ailleurs
+const QUESTION_TIME = 5
 
 export default function Quiz({ match, matchIndex, onClose }) {
   const { dispatch, flyPoints, refreshBoard } = useStore()
@@ -19,18 +23,41 @@ export default function Quiz({ match, matchIndex, onClose }) {
   const [picked, setPicked] = useState(null)
   const [correct, setCorrect] = useState(0)
   const [finished, setFinished] = useState(false)
+  const [timeLeft, setTimeLeft] = useState(QUESTION_TIME)
 
   const chooseLevel = (lvl) => {
     setLevel(lvl)
     setQuestions(getQuizQuestions(matchIndex, lvl))
   }
 
+  // Compte à rebours : il repart à chaque question et s'arrête dès qu'on répond.
+  // Temps écoulé = réponse fausse (picked = -1), puis on enchaîne.
+  useEffect(() => {
+    if (!level || finished || picked !== null) return
+    setTimeLeft(QUESTION_TIME)
+    const startedAt = Date.now()
+    const id = setInterval(() => {
+      const remaining = QUESTION_TIME - (Date.now() - startedAt) / 1000
+      if (remaining <= 0) {
+        clearInterval(id)
+        setTimeLeft(0)
+        answer(-1)
+      } else {
+        setTimeLeft(remaining)
+      }
+    }, 100)
+    return () => clearInterval(id)
+  }, [level, finished, picked, qIndex])
+
   const answer = (choiceIndex) => {
     if (picked !== null) return
     setPicked(choiceIndex)
     const isCorrect = choiceIndex === questions[qIndex].answer
     const nextCorrect = correct + (isCorrect ? 1 : 0)
-    if (isCorrect) setCorrect(nextCorrect)
+    if (isCorrect) {
+      setCorrect(nextCorrect)
+      playQuizCorrect()
+    }
 
     setTimeout(() => {
       if (qIndex < 2) {
@@ -95,6 +122,7 @@ export default function Quiz({ match, matchIndex, onClose }) {
             <p className="level-warning">
               ⚠️ Le niveau choisi est définitif : impossible d’en changer une fois le quiz commencé.
               Plus c’est dur, plus ça rapporte !
+              <br />⏱ {QUESTION_TIME} secondes par question : pas le temps de tricher !
             </p>
           </>
         )}
@@ -110,6 +138,13 @@ export default function Quiz({ match, matchIndex, onClose }) {
                 <div key={i} className={`dot ${i < qIndex ? 'done' : i === qIndex ? 'current' : ''}`} />
               ))}
             </div>
+            <div className={`quiz-timer ${timeLeft <= 2 && picked === null ? 'danger' : ''}`}>
+              <div className="quiz-timer-track">
+                <div className="quiz-timer-bar" style={{ width: `${(timeLeft / QUESTION_TIME) * 100}%` }} />
+              </div>
+              <span className="quiz-timer-label">⏱ {Math.ceil(timeLeft)}s</span>
+            </div>
+            {picked === -1 && <p className="quiz-timeout">⏱ Temps écoulé !</p>}
             <AnimatePresence mode="wait">
               <motion.div
                 key={qIndex}

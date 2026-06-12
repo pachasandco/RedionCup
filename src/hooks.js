@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
+import { playScoreTally } from './lib/sound.js'
 
-// Compteur animé : fait défiler la valeur affichée vers la nouvelle valeur
-export function useCountUp(value, duration = 900) {
+// Compteur animé : fait défiler la valeur affichée vers la nouvelle valeur.
+// withSound : tics sonores pendant l'accumulation (réservé au score du joueur,
+// sinon chaque ligne du classement déclencherait sa propre salve).
+export function useCountUp(value, duration = 900, withSound = false) {
   const [display, setDisplay] = useState(value)
   const prev = useRef(value)
 
@@ -10,6 +13,7 @@ export function useCountUp(value, duration = 900) {
     const to = value
     prev.current = value
     if (from === to) return
+    if (withSound && to > from) playScoreTally(duration)
     const start = performance.now()
     let raf
     const tick = (t) => {

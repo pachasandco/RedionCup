@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
 import { useStore } from '../store.jsx'
@@ -7,6 +7,7 @@ import { isOnline } from '../lib/supabase.js'
 import { pushEvent } from '../lib/onlineSync.js'
 import { notify } from '../lib/notify.js'
 import { stadiumFlash, punch, shake } from '../lib/fx.js'
+import { playPronoWin } from '../lib/sound.js'
 import { hasLiveData } from '../lib/footballData.js'
 import Quiz from './Quiz.jsx'
 
@@ -22,7 +23,7 @@ function Stepper({ value, onChange, disabled }) {
   )
 }
 
-function MatchCard({ match, index }) {
+function MatchCard({ match, index, now }) {
   const { state, dispatch, flyPoints, refreshBoard } = useStore()
   const played = state.played.includes(match.id)
   const pred = state.predictions[match.id]
@@ -30,7 +31,15 @@ function MatchCard({ match, index }) {
   const [showQuiz, setShowQuiz] = useState(false)
   const cardRef = useRef(null)
 
-  const setPred = (h, a) => dispatch({ type: 'SET_PREDICTION', matchId: match.id, h, a })
+  // Match réel : prono modifiable jusqu'au coup d'envoi, puis verrouillé.
+  // (Si le score est déjà publié, on verrouille aussi — il est public !)
+  // Les matchs de démo (sans kickoff, non-live) restent jouables librement.
+  const locked = !played && match.live && (match.actual != null || (match.kickoff != null && now >= match.kickoff))
+
+  const setPred = (h, a) => {
+    if (locked) return
+    dispatch({ type: 'SET_PREDICTION', matchId: match.id, h, a })
+  }
 
   const play = () => {
     if (!match.actual) return
@@ -38,6 +47,7 @@ function MatchCard({ match, index }) {
     dispatch({ type: 'PLAY_MATCH', matchId: match.id, actual: match.actual })
 
     if (result.points > 0) {
+      playPronoWin()
       flyPoints(result.points)
       punch(cardRef.current)
       notify('⚽ RedionCup', `${result.label} +${result.points} pts sur ${match.home.name} – ${match.away.name}`)
@@ -90,9 +100,9 @@ function MatchCard({ match, index }) {
           </motion.div>
         ) : (
           <div className="score-box">
-            <Stepper value={pred?.h ?? 0} onChange={(h) => setPred(h, pred?.a ?? 0)} />
+            <Stepper value={pred?.h ?? 0} disabled={locked} onChange={(h) => setPred(h, pred?.a ?? 0)} />
             <span className="vs">VS</span>
-            <Stepper value={pred?.a ?? 0} onChange={(a) => setPred(pred?.h ?? 0, a)} />
+            <Stepper value={pred?.a ?? 0} disabled={locked} onChange={(a) => setPred(pred?.h ?? 0, a)} />
           </div>
         )}
 
@@ -107,15 +117,25 @@ function MatchCard({ match, index }) {
       )}
 
       <div className="match-actions">
-        {!played && awaitingResult && (
+        {!played && awaitingResult && !locked && (
           <span className="points-badge win">
-            ⏳ Prono enregistré — en attente du résultat officiel
+            {pred
+              ? '✏️ Prono enregistré — modifiable jusqu’au coup d’envoi'
+              : '⏳ Fais ton prono avant le coup d’envoi !'}
+          </span>
+        )}
+
+        {!played && awaitingResult && locked && (
+          <span className="points-badge lose">
+            🔒 Match commencé — pronos verrouillés{pred ? '' : ' (pas de prono)'}
           </span>
         )}
 
         {!played && !awaitingResult && (
-          <button className="btn btn-primary" onClick={play} disabled={!pred}>
-            {pred ? (match.live ? '🟢 Valider le résultat officiel' : '🟢 Coup d’envoi !') : 'Choisis un score d’abord'}
+          <button className="btn btn-primary" onClick={play} disabled={!pred && !match.live}>
+            {pred
+              ? (match.live ? '🟢 Valider le résultat officiel' : '🟢 Coup d’envoi !')
+              : (match.live ? '🟢 Valider (aucun prono fait)' : 'Choisis un score d’abord')}
           </button>
         )}
 
@@ -160,6 +180,13 @@ function MatchCard({ match, index }) {
 
 export default function Matches() {
   const { matches, liveError } = useStore()
+  // Horloge rafraîchie chaque 30 s : verrouille les pronos au coup d'envoi
+  // même si la page reste ouverte.
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000)
+    return () => clearInterval(id)
+  }, [])
   return (
     <div>
       <h2 className="section-title">
@@ -171,7 +198,7 @@ export default function Matches() {
         {liveError && ` ⚠️ Données live indisponibles (${liveError}) : matchs de démo affichés.`}
       </p>
       {matches.map((m, i) => (
-        <MatchCard key={m.id} match={m} index={i} />
+        <MatchCard key={m.id} match={m} index={i} now={now} />
       ))}
     </div>
   )
