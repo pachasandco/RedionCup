@@ -230,6 +230,28 @@ body {
 .podium-bar.bronze { background: linear-gradient(180deg, #d97706, #7c3a08); }
 .podium-empty { color: var(--text-dim); margin-top: 40px; }
 
+/* ---------- Annonces de l'organisateur ---------- */
+.announce-overlay {
+  position: fixed; inset: 0; background: rgba(5, 12, 26, 0.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 250; padding: 16px; backdrop-filter: blur(4px);
+}
+.announce-bubble {
+  position: relative; width: 100%; max-width: 440px;
+  background: linear-gradient(160deg, var(--bg-2), var(--bg));
+  border: 2px solid var(--gold); border-radius: 20px;
+  padding: 24px 22px; box-shadow: 0 0 40px rgba(255, 215, 0, 0.2);
+}
+.announce-close {
+  position: absolute; top: 10px; right: 12px;
+  background: none; border: none; color: var(--text-dim);
+  font-size: 1.1rem; cursor: pointer; padding: 4px;
+}
+.announce-close:hover { color: var(--text); }
+.announce-head { color: var(--gold); font-weight: 800; margin-bottom: 10px; }
+.announce-body { font-size: 1rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.admin-card { border-color: rgba(255, 215, 0, 0.45); }
+
 /* ---------- Chat ---------- */
 .chat-box {
   display: flex; flex-direction: column; gap: 10px;

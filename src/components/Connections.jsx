@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { isOnline } from '../lib/supabase.js'
 import { hasLiveData } from '../lib/footballData.js'
 import { useStore } from '../store.jsx'
-import { logoutDevice } from '../lib/onlineSync.js'
+import { logoutDevice, postAnnouncement } from '../lib/onlineSync.js'
 import {
   notificationsSupported,
   notificationsEnabled,
@@ -19,6 +19,20 @@ function StatusPill({ on, onLabel = 'Activé', offLabel = 'Non configuré' }) {
 export default function Connections() {
   const { player } = useStore()
   const [notifOn, setNotifOn] = useState(notificationsEnabled())
+  const [announce, setAnnounce] = useState('')
+  const [announceState, setAnnounceState] = useState(null) // 'ok' | message d'erreur
+  const isAdmin = player?.name?.toLowerCase() === 'moussa'
+
+  const sendAnnouncement = async () => {
+    try {
+      await postAnnouncement(announce)
+      setAnnounce('')
+      setAnnounceState('ok')
+    } catch (e) {
+      setAnnounceState(e.message)
+    }
+    setTimeout(() => setAnnounceState(null), 3000)
+  }
 
   const toggleNotif = async () => {
     if (notifOn) {
@@ -75,6 +89,35 @@ export default function Connections() {
           </>
         )}
       </motion.div>
+
+      {isAdmin && (
+        <motion.div className="conn-card admin-card" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }}>
+          <div className="conn-head">
+            <span className="conn-title">📣 Annonce à tous les joueurs</span>
+            <StatusPill on onLabel="Admin" />
+          </div>
+          <p className="conn-desc">
+            Chaque joueur verra ce message <strong>une seule fois</strong>, dans une
+            bulle qu’il ferme avec la croix. Visible uniquement par toi.
+          </p>
+          <div className="conn-row">
+            <input
+              className="input"
+              style={{ flex: 1 }}
+              value={announce}
+              maxLength={500}
+              placeholder="Ton message au groupe…"
+              onChange={(e) => setAnnounce(e.target.value)}
+            />
+            <button className="btn btn-gold" onClick={sendAnnouncement} disabled={!announce.trim()}>
+              {announceState === 'ok' ? '✅ Envoyé' : 'Envoyer 📣'}
+            </button>
+          </div>
+          {announceState && announceState !== 'ok' && (
+            <p className="onboarding-error">⚠️ {announceState}</p>
+          )}
+        </motion.div>
+      )}
 
       <motion.div className="conn-card" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
         <div className="conn-head">

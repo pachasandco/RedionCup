@@ -12,6 +12,7 @@ import Connections from './components/Connections.jsx'
 import Chat from './components/Chat.jsx'
 import Onboarding from './components/Onboarding.jsx'
 import Victory from './components/Victory.jsx'
+import Announcements from './components/Announcements.jsx'
 
 const TABS = [
   { id: 'matchs', label: '⚽ Matchs', component: Matches },
@@ -130,6 +131,8 @@ export default function App() {
           </button>
         </footer>
       )}
+
+      <Announcements />
 
       <AnimatePresence>
         {finished && !celebrated && (

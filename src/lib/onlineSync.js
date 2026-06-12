@@ -167,6 +167,37 @@ export async function savePrediction(matchId, h, a) {
   )
 }
 
+// --- Annonces de l'organisateur ---
+
+export async function fetchAnnouncements() {
+  if (!isOnline) return []
+  const { data, error } = await supabase
+    .from('announcements')
+    .select('id, body, created_at')
+    .order('created_at', { ascending: true })
+    .limit(20)
+  if (error) throw error
+  return data
+}
+
+// Publication réservée à l'organisateur : son code de connexion est
+// vérifié côté serveur (post_announcement).
+export async function postAnnouncement(body) {
+  const player = getLocalPlayer()
+  if (!isOnline || !player?.pin) throw new Error('Connexion requise.')
+  const { error } = await supabase.rpc('post_announcement', { p_pin: player.pin, p_body: body })
+  if (error) throw new Error(error.message)
+}
+
+export function subscribeAnnouncements(onChange) {
+  if (!isOnline) return () => {}
+  const channel = supabase
+    .channel(`redioncup-annonces-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'announcements' }, onChange)
+    .subscribe()
+  return () => supabase.removeChannel(channel)
+}
+
 // --- Chat de chambrage ---
 
 export async function fetchMessages() {
