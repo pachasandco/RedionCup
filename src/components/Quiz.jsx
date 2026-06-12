@@ -11,8 +11,8 @@ import { stadiumFlash } from '../lib/fx.js'
 import { playQuizCorrect } from '../lib/sound.js'
 import trophyAnim from '../assets/trophy.json'
 
-// 5 secondes par question : pas le temps d'aller chercher la réponse ailleurs
-const QUESTION_TIME = 5
+// 10 secondes par question : le temps de lire, pas d'aller chercher la réponse
+const QUESTION_TIME = 10
 
 export default function Quiz({ match, matchIndex, onClose }) {
   const { dispatch, flyPoints, refreshBoard } = useStore()
