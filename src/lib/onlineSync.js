@@ -105,13 +105,20 @@ export async function pushEvent({ matchId, type, points, label }) {
   if (!isOnline) return
   const player = getLocalPlayer()
   if (!player) return
-  await supabase.from('events').insert({
+  const { error } = await supabase.from('events').insert({
     player_id: player.id,
     match_id: matchId,
     type,
     points,
     label,
   })
+  // 23505 = déjà validé depuis un autre appareil : pas un problème.
+  // Tout autre échec doit être visible, sinon des points se perdent
+  // en silence (réseau, identité périmée…).
+  if (error && error.code !== '23505') {
+    console.error('Envoi des points échoué :', error.message)
+    alert(`⚠️ Tes points (${label}) n'ont pas pu être envoyés au classement. Recharge la page et revalide le match.`)
+  }
 }
 
 // Récupère joueurs + scores agrégés.
