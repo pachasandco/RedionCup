@@ -162,4 +162,8 @@ export async function fetchWorldCupMatches() {
     live: true,
     }
   })
+    // Ordre chronologique (le fichier openfootball est rangé par groupe).
+    // Les ids restent liés à la position dans le fichier : stables d'un
+    // chargement à l'autre, le tri ne casse pas les pronos enregistrés.
+    .sort((a, b) => (a.kickoff ?? Infinity) - (b.kickoff ?? Infinity))
 }
