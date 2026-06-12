@@ -98,9 +98,48 @@ function matchDate(m, ko) {
   }
 }
 
+// Scores finaux en quasi temps réel via l'API publique ESPN (sans clé,
+// CORS ouvert) : openfootball ne pousse ses résultats qu'une fois par jour,
+// ESPN les a quelques minutes après le coup de sifflet final.
+const ESPN_URL =
+  'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=20260611-20260719&limit=200'
+
+// Équipes nommées différemment chez ESPN (sinon identiques à openfootball)
+const ESPN_ALIASES = {
+  'Bosnia-Herzegovina': 'Bosnia & Herzegovina',
+  'Congo DR': 'DR Congo',
+  Czechia: 'Czech Republic',
+  'Türkiye': 'Turkey',
+  'United States': 'USA',
+}
+
+// Map "équipe1|équipe2" (noms openfootball, dans les deux sens) → score final
+async function fetchEspnScores() {
+  try {
+    const res = await fetch(ESPN_URL)
+    if (!res.ok) return new Map()
+    const data = await res.json()
+    const scores = new Map()
+    for (const e of data.events ?? []) {
+      const c = e.competitions?.[0]
+      if (!c?.status?.type?.completed) continue
+      const home = c.competitors?.find((t) => t.homeAway === 'home')
+      const away = c.competitors?.find((t) => t.homeAway === 'away')
+      if (!home || !away) continue
+      const h = ESPN_ALIASES[home.team.displayName] ?? home.team.displayName
+      const a = ESPN_ALIASES[away.team.displayName] ?? away.team.displayName
+      scores.set(`${h}|${a}`, { h: Number(home.score), a: Number(away.score) })
+      scores.set(`${a}|${h}`, { h: Number(away.score), a: Number(home.score) })
+    }
+    return scores
+  } catch {
+    return new Map() // ESPN indisponible : openfootball reste la référence
+  }
+}
+
 export async function fetchWorldCupMatches() {
   if (!hasLiveData) return null
-  const res = await fetch(DATA_URL)
+  const [res, espnScores] = await Promise.all([fetch(DATA_URL), fetchEspnScores()])
   if (!res.ok) throw new Error(`openfootball : HTTP ${res.status}`)
   const data = await res.json()
 
@@ -115,9 +154,11 @@ export async function fetchWorldCupMatches() {
     stadium: m.ground ?? '',
     home: team(m.team1),
     away: team(m.team2),
-    // Le score (score.ft) n'apparaît qu'une fois le match terminé :
-    // tant qu'il est absent, le match ne peut pas être "joué" dans l'app.
-    actual: m.score?.ft ? { h: m.score.ft[0], a: m.score.ft[1] } : null,
+    // Score final : openfootball (quotidien) ou ESPN (quasi direct).
+    // Tant qu'il est absent, le match ne peut pas être "joué" dans l'app.
+    actual: m.score?.ft
+      ? { h: m.score.ft[0], a: m.score.ft[1] }
+      : espnScores.get(`${m.team1}|${m.team2}`) ?? null,
     live: true,
     }
   })
