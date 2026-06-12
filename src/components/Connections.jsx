@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { isOnline } from '../lib/supabase.js'
 import { hasLiveData } from '../lib/footballData.js'
 import { useStore } from '../store.jsx'
+import { logoutDevice } from '../lib/onlineSync.js'
 import {
   notificationsSupported,
   notificationsEnabled,
@@ -48,16 +49,30 @@ export default function Connections() {
           <code>VITE_SUPABASE_URL</code> et <code>VITE_SUPABASE_ANON_KEY</code>.
         </p>
         {player && (
-          <p className="conn-identity">
-            Inscrit·e en tant que <strong>{player.avatar} {player.name}</strong> 🔒
-            — le prénom est définitif et ne peut pas être modifié.
-            {player.pin && (
-              <>
-                <br />🔑 Code de connexion : <strong className="conn-pin">{player.pin}</strong>
-                {' '}— utilise-le avec ton prénom pour te connecter sur un autre appareil.
-              </>
-            )}
-          </p>
+          <>
+            <p className="conn-identity">
+              Inscrit·e en tant que <strong>{player.avatar} {player.name}</strong> 🔒
+              — le prénom est définitif et ne peut pas être modifié.
+              {player.pin && (
+                <>
+                  <br />🔑 Code de connexion : <strong className="conn-pin">{player.pin}</strong>
+                  {' '}— utilise-le avec ton prénom pour te connecter sur un autre appareil.
+                </>
+              )}
+            </p>
+            <div className="conn-row">
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  if (window.confirm('Se déconnecter de cet appareil ? Tu pourras retrouver ton compte avec ton prénom + ton code de connexion.')) {
+                    logoutDevice()
+                  }
+                }}
+              >
+                🚪 Se déconnecter de cet appareil
+              </button>
+            </div>
+          </>
         )}
       </motion.div>
 

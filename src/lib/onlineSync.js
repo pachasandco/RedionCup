@@ -77,6 +77,14 @@ export async function claimPlayer(rawName, rawPin) {
   return player
 }
 
+// Déconnecte cet appareil : efface l'identité et la partie locales.
+// Le compte reste en base — on le retrouve avec prénom + code.
+export function logoutDevice() {
+  localStorage.removeItem(PLAYER_KEY)
+  localStorage.removeItem('redioncup-v1')
+  window.location.reload()
+}
+
 // Resynchronise le joueur déjà inscrit vers Supabase (au cas où la ligne
 // aurait disparu, ex. inscription faite hors ligne). Idempotent.
 export async function ensurePlayer() {
