@@ -4,7 +4,7 @@ import confetti from 'canvas-confetti'
 import { useStore } from '../store.jsx'
 import { matchPoints } from '../data.js'
 import { isOnline } from '../lib/supabase.js'
-import { pushEvent } from '../lib/onlineSync.js'
+import { pushEvent, savePrediction } from '../lib/onlineSync.js'
 import { notify } from '../lib/notify.js'
 import { stadiumFlash, punch, shake } from '../lib/fx.js'
 import { playPronoWin } from '../lib/sound.js'
@@ -39,6 +39,7 @@ function MatchCard({ match, index, now }) {
   const setPred = (h, a) => {
     if (locked) return
     dispatch({ type: 'SET_PREDICTION', matchId: match.id, h, a })
+    savePrediction(match.id, h, a) // synchro vers les autres appareils du joueur
   }
 
   const play = () => {

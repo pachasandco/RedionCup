@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useReducer, useState, useCallback } from 'react'
 import { MATCHES, PLAYERS, USER_ID, matchPoints, botPrediction, botQuizResult } from './data'
 import { isOnline } from './lib/supabase.js'
-import { ensurePlayer, getLocalPlayer, fetchBoard, subscribeBoard } from './lib/onlineSync.js'
+import { ensurePlayer, getLocalPlayer, fetchBoard, subscribeBoard, fetchMyPredictions } from './lib/onlineSync.js'
 import { hasLiveData, fetchWorldCupMatches } from './lib/footballData.js'
 
 const STORAGE_KEY = 'redioncup-v1'
@@ -56,6 +56,16 @@ function reducer(state, action) {
         { matchId, playerId: USER_ID, type: 'quiz', points, label: `Quiz ${level} : ${correct}/3` },
       ]
       return { ...state, quizDone: { ...state.quizDone, [matchId]: { level, correct, points } }, scores, history }
+    }
+    case 'LOAD_PREDICTIONS': {
+      // Pronos venus de la base (autres appareils du joueur). Ils priment
+      // sur le local, sauf pour les matchs déjà joués ici : leur prono est
+      // figé, les points sont déjà calculés.
+      const predictions = { ...state.predictions }
+      for (const [matchId, p] of Object.entries(action.predictions)) {
+        if (!state.played.includes(matchId)) predictions[matchId] = p
+      }
+      return { ...state, predictions }
     }
     case 'RESET':
       return { ...initialState, scores: { ...initialState.scores } }
@@ -113,6 +123,14 @@ export function StoreProvider({ children }) {
       unsubscribe()
     }
   }, [])
+
+  // Récupère les pronos du compte (faits depuis n'importe quel appareil)
+  useEffect(() => {
+    if (!isOnline || !player) return
+    fetchMyPredictions()
+      .then((preds) => dispatch({ type: 'LOAD_PREDICTIONS', predictions: preds }))
+      .catch((e) => console.error('Supabase :', e))
+  }, [player])
 
   // Vrais matchs de Coupe du Monde via football-data.org
   useEffect(() => {

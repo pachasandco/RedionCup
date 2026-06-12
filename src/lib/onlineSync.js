@@ -134,6 +134,32 @@ export async function fetchBoard() {
   }
 }
 
+// --- Synchronisation des pronostics entre appareils ---
+
+export async function fetchMyPredictions() {
+  if (!isOnline) return {}
+  const player = getLocalPlayer()
+  if (!player) return {}
+  const { data, error } = await supabase
+    .from('predictions')
+    .select('match_id, h, a')
+    .eq('player_id', player.id)
+  if (error) throw error
+  return Object.fromEntries(data.map((p) => [p.match_id, { h: p.h, a: p.a }]))
+}
+
+// Fire-and-forget : la version locale fait foi sur cet appareil, la base
+// sert aux autres appareils du joueur.
+export async function savePrediction(matchId, h, a) {
+  if (!isOnline) return
+  const player = getLocalPlayer()
+  if (!player) return
+  await supabase.from('predictions').upsert(
+    { player_id: player.id, match_id: matchId, h, a, updated_at: new Date().toISOString() },
+    { onConflict: 'player_id,match_id' }
+  )
+}
+
 // --- Chat de chambrage ---
 
 export async function fetchMessages() {
