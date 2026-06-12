@@ -206,7 +206,7 @@ export default function Matches() {
       </h2>
       <p className="section-sub">
         Pronostique le score, lance le coup d’envoi, puis joue le quiz pour gagner des points bonus.
-        Barème : score exact +{MATCH_POINTS.exact} · bonne différence +{MATCH_POINTS.diff} · bon résultat +{MATCH_POINTS.outcome}.
+        Barème : bon résultat +{MATCH_POINTS.outcome} · +1 si bon écart de buts · +2 si score exact.
         {liveError && ` ⚠️ Données live indisponibles (${liveError}) : matchs de démo affichés.`}
       </p>
       {matches.map((m, i) => (
