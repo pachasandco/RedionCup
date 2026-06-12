@@ -69,6 +69,9 @@ function MatchCard({ match, index, now }) {
     ? result.points >= 10 ? 'exact' : result.points > 0 ? 'win' : 'lose'
     : ''
   const awaitingResult = !played && !match.actual // vrai match pas encore terminé
+  // Score final affiché dès que le match réel est terminé (même avant
+  // validation) ; en mode démo, seulement après le coup d'envoi simulé.
+  const showFinalScore = played || (match.live && match.actual != null)
 
   return (
     <motion.div
@@ -89,7 +92,7 @@ function MatchCard({ match, index, now }) {
           <span className="name">{match.home.name}</span>
         </div>
 
-        {played ? (
+        {showFinalScore ? (
           <motion.div
             className="final-score"
             initial={{ scale: 0, rotate: -8 }}
@@ -112,16 +115,14 @@ function MatchCard({ match, index, now }) {
         </div>
       </div>
 
-      {played && pred && (
+      {showFinalScore && pred && (
         <p className="my-pred">Mon prono : {pred.h} – {pred.a}</p>
       )}
 
       <div className="match-actions">
-        {!played && awaitingResult && !locked && (
+        {!played && awaitingResult && !locked && pred && (
           <span className="points-badge win">
-            {pred
-              ? '✏️ Prono enregistré — modifiable jusqu’au coup d’envoi'
-              : '⏳ Fais ton prono avant le coup d’envoi !'}
+            ✏️ Prono enregistré — modifiable jusqu’au coup d’envoi
           </span>
         )}
 
