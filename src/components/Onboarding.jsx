@@ -42,15 +42,21 @@ export default function Onboarding() {
         >
           <div className="onboarding-ball">{created.avatar}</div>
           <h1>Bienvenue {created.name} !</h1>
-          <p className="onboarding-sub">Ton code de connexion :</p>
+          <p className="onboarding-sub">📱 Ton code pour te connecter sur un autre appareil :</p>
           <div className="onboarding-pin">{created.pin}</div>
+          <p className="onboarding-explain">
+            Sur <strong>cet appareil</strong>, tu restes connecté·e automatiquement,
+            rien à faire. Ce code sert <strong>uniquement</strong> si tu ouvres
+            l’app sur un <strong>autre appareil</strong> (téléphone, tablette,
+            PC…) : choisis « 🔑 J’ai déjà un code » et entre ton prénom + ce code
+            pour retrouver ton compte et tous tes points.
+          </p>
           <p className="onboarding-warning">
-            🔑 Note ce code : c’est lui qui te permet de retrouver ton compte
-            sur un autre appareil (téléphone, PC…). Tu le retrouveras aussi
-            dans l’onglet Connexions.
+            ✍️ Note-le ou prends une capture d’écran ! Tu le retrouveras aussi
+            dans l’onglet ⚙️ Connexions.
           </p>
           <button className="btn btn-primary onboarding-btn" onClick={() => adoptPlayer(created)}>
-            C’est noté, c’est parti ! 🚀
+            J’ai noté mon code, c’est parti ! 🚀
           </button>
         </motion.div>
       </div>
@@ -124,8 +130,14 @@ export default function Onboarding() {
         {mode === 'new' && (
           <p className="onboarding-warning">
             ⚠️ Ton prénom est <strong>définitif</strong> : une seule inscription,
-            impossible d’en changer. Tu recevras un code pour te connecter
-            sur tes autres appareils.
+            impossible d’en changer. Tu recevras ensuite un code à 6 chiffres
+            qui te servira à te connecter depuis un autre appareil.
+          </p>
+        )}
+        {mode === 'claim' && (
+          <p className="onboarding-warning">
+            🔑 Ton code à 6 chiffres t’a été montré lors de ton inscription
+            (il est aussi dans l’onglet ⚙️ Connexions de ton premier appareil).
           </p>
         )}
       </motion.form>
