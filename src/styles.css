@@ -213,7 +213,7 @@ body {
 .board-row .ppoints { font-weight: 900; font-size: 1.15rem; color: var(--green); }
 
 /* ---------- Podium ---------- */
-.podium-wrap { text-align: center; }
+.podium-wrap { text-align: center; margin-bottom: 28px; }
 .podium { display: flex; align-items: flex-end; justify-content: center; gap: 14px; margin-top: 30px; }
 .podium-col { display: flex; flex-direction: column; align-items: center; width: 130px; }
 .podium-col .medal { font-size: 2.2rem; }

@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { usePlayers } from '../store.jsx'
 import { isOnline } from '../lib/supabase.js'
 import { useCountUp } from '../hooks.js'
+import Podium from './Podium.jsx'
 
 function Row({ player, rank, points }) {
   const display = useCountUp(points)
@@ -36,6 +37,7 @@ export default function Leaderboard() {
           ? '🟢 Multijoueur en ligne : le classement se synchronise en temps réel entre tous les parieurs.'
           : 'Le classement se réorganise en direct à chaque match et chaque quiz.'}
       </p>
+      <Podium />
       <div className="board">
         {ranked.map((p, i) => (
           <Row key={p.id} player={p} rank={i + 1} points={scores[p.id] ?? 0} />

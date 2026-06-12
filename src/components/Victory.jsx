@@ -74,7 +74,7 @@ export default function Victory({ onClose }) {
             ? 'CHAMPION·NE DU MONDE 2026 ! 🎉'
             : `Bravo ${winner.name} — rendez-vous en 2030 pour la revanche ! 😤`}
         </p>
-        <button className="btn btn-primary" onClick={onClose}>Voir le podium</button>
+        <button className="btn btn-primary" onClick={onClose}>Voir le classement</button>
       </motion.div>
     </motion.div>
   )

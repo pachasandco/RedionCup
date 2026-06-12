@@ -24,18 +24,11 @@ export default function Podium() {
     return () => clearTimeout(t)
   }, [hasPoints])
 
-  if (!hasPoints) {
-    return (
-      <div className="podium-wrap">
-        <h2 className="section-title">🏆 Podium</h2>
-        <p className="podium-empty">Joue d’abord quelques matchs pour voir apparaître le podium !</p>
-      </div>
-    )
-  }
+  // Intégré en tête du classement : invisible tant que personne n'a de points
+  if (!hasPoints) return null
 
   return (
     <div className="podium-wrap">
-      <h2 className="section-title">🏆 Podium</h2>
       <motion.div
         initial={{ opacity: 0, scale: 0.6 }}
         animate={{ opacity: 1, scale: 1 }}

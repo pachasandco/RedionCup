@@ -7,7 +7,6 @@ import { playPodium } from './lib/sound.js'
 import { notify } from './lib/notify.js'
 import Matches from './components/Matches.jsx'
 import Leaderboard from './components/Leaderboard.jsx'
-import Podium from './components/Podium.jsx'
 import History from './components/History.jsx'
 import Connections from './components/Connections.jsx'
 import Chat from './components/Chat.jsx'
@@ -16,8 +15,7 @@ import Victory from './components/Victory.jsx'
 
 const TABS = [
   { id: 'matchs', label: '⚽ Matchs', component: Matches },
-  { id: 'classement', label: '📊 Classement', component: Leaderboard },
-  { id: 'podium', label: '🏆 Podium', component: Podium },
+  { id: 'classement', label: '🏆 Classement', component: Leaderboard },
   { id: 'pronos', label: '✅ Mes pronos', component: History },
   { id: 'chat', label: '💬 Chambrage', component: Chat },
   { id: 'connexions', label: '⚙️ Connexions', component: Connections },
@@ -135,7 +133,7 @@ export default function App() {
 
       <AnimatePresence>
         {finished && !celebrated && (
-          <Victory onClose={() => { setCelebrated(true); setTab('podium') }} />
+          <Victory onClose={() => { setCelebrated(true); setTab('classement') }} />
         )}
       </AnimatePresence>
     </div>
