@@ -24,7 +24,7 @@ export default function History() {
       {upcoming.length > 0 && (
         <motion.div className="hist-card" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
           <div className="hist-head">
-            <span className="hist-title">⏳ Pronos enregistrés — matchs à venir</span>
+            <span className="hist-title">✏️ Pronos enregistrés — modifiables jusqu’au coup d’envoi</span>
           </div>
           {upcoming.map((m) => {
             const p = state.predictions[m.id]
