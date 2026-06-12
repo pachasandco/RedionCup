@@ -230,6 +230,37 @@ body {
 .podium-bar.bronze { background: linear-gradient(180deg, #d97706, #7c3a08); }
 .podium-empty { color: var(--text-dim); margin-top: 40px; }
 
+/* ---------- Chat ---------- */
+.chat-box {
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--card); border: 1px solid var(--card-border);
+  border-radius: 16px; padding: 16px;
+  height: 50vh; min-height: 280px; overflow-y: auto;
+}
+.chat-msg { display: flex; align-items: flex-end; gap: 8px; }
+.chat-msg.mine { justify-content: flex-end; }
+.chat-avatar { font-size: 1.4rem; }
+.chat-bubble {
+  display: flex; flex-direction: column; max-width: 75%;
+  background: rgba(255, 255, 255, 0.07); border: 1px solid var(--card-border);
+  border-radius: 14px 14px 14px 4px; padding: 8px 12px;
+}
+.chat-msg.mine .chat-bubble {
+  background: rgba(255, 215, 0, 0.1); border-color: rgba(255, 215, 0, 0.35);
+  border-radius: 14px 14px 4px 14px;
+}
+.chat-name { color: var(--gold); font-size: 0.75rem; font-weight: 800; margin-bottom: 2px; }
+.chat-body { font-size: 0.95rem; word-break: break-word; }
+.chat-time { color: var(--text-dim); font-size: 0.68rem; align-self: flex-end; margin-top: 2px; }
+.chat-quick { display: flex; gap: 6px; margin: 12px 0; flex-wrap: wrap; }
+.chat-quick-btn {
+  background: var(--card); border: 1px solid var(--card-border); border-radius: 999px;
+  font-size: 1.15rem; padding: 6px 12px; cursor: pointer; transition: transform 0.1s, border-color 0.15s;
+}
+.chat-quick-btn:hover { transform: scale(1.15); border-color: var(--gold); }
+.chat-form { display: flex; gap: 10px; }
+.chat-input { flex: 1; min-width: 0; }
+
 /* ---------- Historique ---------- */
 .hist-card {
   background: var(--card); border: 1px solid var(--card-border);

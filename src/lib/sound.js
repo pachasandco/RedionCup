@@ -60,6 +60,11 @@ export function playScoreTally(durationMs = 900) {
   }
 }
 
+// 💬 Nouveau message dans le chat : petit pop discret
+export function playChatPop() {
+  tone({ freq: 660, dur: 0.08, type: 'sine', gain: 0.07, slideTo: 990 })
+}
+
 // 🥉 Montée sur le podium : petite fanfare (do mi sol do)
 export function playPodium() {
   const notes = [523.25, 659.25, 783.99, 1046.5]

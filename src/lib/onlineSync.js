@@ -140,6 +140,37 @@ export async function fetchBoard() {
   }
 }
 
+// --- Chat de chambrage ---
+
+export async function fetchMessages() {
+  if (!isOnline) return []
+  const { data, error } = await supabase
+    .from('messages')
+    .select('id, body, created_at, player:players(id, name, avatar)')
+    .order('created_at', { ascending: false })
+    .limit(100)
+  if (error) throw error
+  return data.reverse() // affichage du plus ancien au plus récent
+}
+
+export async function sendMessage(body) {
+  if (!isOnline) return
+  const player = getLocalPlayer()
+  const text = body.trim().slice(0, 280)
+  if (!player || !text) return
+  const { error } = await supabase.from('messages').insert({ player_id: player.id, body: text })
+  if (error) throw error
+}
+
+export function subscribeMessages(onChange) {
+  if (!isOnline) return () => {}
+  const channel = supabase
+    .channel(`redioncup-chat-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, onChange)
+    .subscribe()
+  return () => supabase.removeChannel(channel)
+}
+
 // Écoute en temps réel : tout nouvel event ou joueur déclenche le callback.
 // Nom de canal unique : un même nom ne peut pas être réabonné (StrictMode
 // monte les effets deux fois en dev).

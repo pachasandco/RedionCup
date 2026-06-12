@@ -10,6 +10,7 @@ import Leaderboard from './components/Leaderboard.jsx'
 import Podium from './components/Podium.jsx'
 import History from './components/History.jsx'
 import Connections from './components/Connections.jsx'
+import Chat from './components/Chat.jsx'
 import Onboarding from './components/Onboarding.jsx'
 import Victory from './components/Victory.jsx'
 
@@ -18,6 +19,7 @@ const TABS = [
   { id: 'classement', label: '📊 Classement', component: Leaderboard },
   { id: 'podium', label: '🏆 Podium', component: Podium },
   { id: 'pronos', label: '✅ Mes pronos', component: History },
+  { id: 'chat', label: '💬 Chambrage', component: Chat },
   { id: 'connexions', label: '⚙️ Connexions', component: Connections },
 ]
 
