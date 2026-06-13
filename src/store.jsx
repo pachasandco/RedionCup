@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useReducer, useState, useCallback } from 'react'
 import { MATCHES, PLAYERS, USER_ID, matchPoints, botPrediction, botQuizResult } from './data'
 import { isOnline } from './lib/supabase.js'
-import { ensurePlayer, getLocalPlayer, fetchBoard, subscribeBoard, fetchMyPredictions } from './lib/onlineSync.js'
+import { ensurePlayer, getLocalPlayer, fetchBoard, subscribeBoard, fetchMyPredictions, pushEvent } from './lib/onlineSync.js'
 import { hasLiveData, fetchWorldCupMatches } from './lib/footballData.js'
 
 const STORAGE_KEY = 'redioncup-v1'
@@ -132,16 +132,34 @@ export function StoreProvider({ children }) {
       .catch((e) => console.error('Supabase :', e))
   }, [player])
 
-  // Vrais matchs de Coupe du Monde via football-data.org
+  // Vrais matchs de Coupe du Monde — et validation automatique des
+  // matchs terminés : dès qu'un score est publié, les points sont
+  // calculés et poussés en base sans que le joueur ait à cliquer.
   useEffect(() => {
     if (!hasLiveData) return
     fetchWorldCupMatches()
       .then((ms) => {
-        if (ms?.length) setMatches(ms)
-        else setLiveError('Aucun match retourné par football-data.org')
+        if (!ms?.length) { setLiveError('Aucun match retourné'); return }
+        setMatches(ms)
+        // Validation auto : matchs avec un score officiel, pas encore joués
+        // localement — on recalcule avec le prono local actuel.
+        const toAutoPlay = ms.filter((m) => m.actual && !state.played.includes(m.id))
+        if (toAutoPlay.length === 0) return
+        // On utilise un snapshot des pronos locaux actuels (state est figé ici)
+        const localPreds = JSON.parse(localStorage.getItem('redioncup-v1') || '{}').predictions ?? {}
+        for (const m of toAutoPlay) {
+          const pred = localPreds[m.id]
+          const result = matchPoints(pred, m.actual)
+          dispatch({ type: 'PLAY_MATCH', matchId: m.id, actual: m.actual })
+          if (isOnline && player) {
+            pushEvent({ matchId: m.id, type: 'match', points: result.points, label: result.label })
+          }
+        }
+        if (isOnline) refreshBoard()
       })
       .catch((e) => setLiveError(e.message))
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player]) // se relance quand l'identité du joueur est connue
 
   const refreshBoard = useCallback(async () => {
     if (!isOnline) return
