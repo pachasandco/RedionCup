@@ -27,7 +27,11 @@ export default function App() {
   const { players, scores } = usePlayers()
   const [tab, setTab] = useState('matchs')
   const [celebrated, setCelebrated] = useState(false)
-  const score = useCountUp(state.scores[USER_ID], 900, true)
+  // Le score du header vient de Supabase (source de vérité) quand disponible,
+  // sinon repli sur le state local.
+  const myPlayer = players.find((p) => p.isUser)
+  const myScore = myPlayer ? (scores[myPlayer.id] ?? 0) : state.scores[USER_ID]
+  const score = useCountUp(myScore, 900, true)
   const Active = TABS.find((t) => t.id === tab).component
 
   // Fanfare quand le joueur monte sur le podium (entre dans le top 3)
@@ -70,7 +74,7 @@ export default function App() {
         <div className="score-chip">
           <span className="score-chip-label">{player.avatar} {player.name}</span>
           <motion.span
-            key={state.scores[USER_ID]}
+            key={myScore}
             className="score-chip-value"
             initial={{ scale: 1.4, color: '#ffd700' }}
             animate={{ scale: 1, color: '#ffffff' }}
