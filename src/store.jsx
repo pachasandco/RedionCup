@@ -118,9 +118,23 @@ export function StoreProvider({ children }) {
         console.error('Supabase :', e)
       }
     })()
+
+    // Filet de sécurité : on ne dépend pas uniquement du temps réel Supabase
+    // (souvent inactif ou échouant en silence). On rafraîchit périodiquement
+    // et au retour sur l'onglet, pour que les points marqués par les autres
+    // joueurs apparaissent toujours, même sans temps réel.
+    const interval = setInterval(refresh, 12000)
+    const onFocus = () => refresh()
+    const onVisible = () => { if (document.visibilityState === 'visible') refresh() }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisible)
+
     return () => {
       active = false
       unsubscribe()
+      clearInterval(interval)
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisible)
     }
   }, [])
 

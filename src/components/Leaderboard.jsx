@@ -1,5 +1,6 @@
+import { useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { usePlayers } from '../store.jsx'
+import { usePlayers, useStore } from '../store.jsx'
 import { isOnline } from '../lib/supabase.js'
 import { useCountUp } from '../hooks.js'
 import Podium from './Podium.jsx'
@@ -27,6 +28,9 @@ function Row({ player, rank, points }) {
 
 export default function Leaderboard() {
   const { players, scores } = usePlayers()
+  const { refreshBoard } = useStore()
+  // Rafraîchit dès l'ouverture de l'onglet pour afficher les points les plus récents
+  useEffect(() => { refreshBoard() }, [refreshBoard])
   const ranked = [...players].sort((a, b) => (scores[b.id] ?? 0) - (scores[a.id] ?? 0))
 
   return (
