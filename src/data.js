@@ -25,7 +25,7 @@ export const MATCHES = [
 
 // ---------- Barème ----------
 // Pronostic : bon résultat 3 pts, score exact 6 pts (différence de buts supprimée)
-// Quiz : 4 questions × 0,5 pt = 2 pts max (~25 % d'un prono parfait)
+// Quiz : 4 questions × 0,5 pt = 2 pts max (0, 0.5, 1, 1.5 ou 2 pts selon les bonnes réponses)
 export const MATCH_POINTS = { exact: 6, outcome: 3 }
 export const QUIZ_LEVELS = {
   quiz: { label: 'Quiz', emoji: '🧠', perQuestion: 0.5 },
