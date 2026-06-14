@@ -1,11 +1,34 @@
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useStore } from '../store.jsx'
-import { USER_ID } from '../data.js'
+import { isOnline } from '../lib/supabase.js'
+import { getLocalPlayer } from '../lib/onlineSync.js'
+import { supabase } from '../lib/supabase.js'
 
 export default function History() {
   const { state, matches } = useStore()
-  const playedMatches = matches.filter((m) => state.played.includes(m.id))
   const upcoming = matches.filter((m) => !state.played.includes(m.id) && state.predictions[m.id])
+
+  // Historique depuis Supabase (source de vérité) — évite d'afficher
+  // les vieux points du localStorage avec l'ancien barème.
+  const [remoteHistory, setRemoteHistory] = useState(null)
+  useEffect(() => {
+    if (!isOnline) return
+    const player = getLocalPlayer()
+    if (!player) return
+    supabase
+      .from('events')
+      .select('match_id, type, points, label')
+      .eq('player_id', player.id)
+      .order('id')
+      .then(({ data }) => { if (data) setRemoteHistory(data) })
+  }, [])
+
+  // Matchs joués : on se base sur les events reçus de Supabase
+  const playedMatchIds = remoteHistory
+    ? [...new Set(remoteHistory.filter(e => e.type === 'match').map(e => e.match_id))]
+    : state.played
+  const playedMatches = matches.filter((m) => playedMatchIds.includes(m.id))
 
   if (playedMatches.length === 0 && upcoming.length === 0) {
     return (
@@ -38,9 +61,11 @@ export default function History() {
         </motion.div>
       )}
       {playedMatches.map((match, i) => {
-        const entries = state.history.filter((h) => h.matchId === match.id && h.playerId === USER_ID)
+        const entries = remoteHistory
+          ? remoteHistory.filter(e => e.match_id === match.id)
+          : state.history.filter(h => h.matchId === match.id)
         const pred = state.predictions[match.id]
-        const total = entries.reduce((sum, e) => sum + e.points, 0)
+        const total = entries.reduce((sum, e) => sum + Number(e.points), 0)
         return (
           <motion.div
             key={match.id}
@@ -61,7 +86,7 @@ export default function History() {
             {entries.map((e, j) => (
               <div className="hist-line" key={j}>
                 <span>{e.type === 'match' ? '⚽' : '🧠'} {e.label}</span>
-                <span className={`pts ${e.points > 0 ? 'gain' : 'zero'}`}>+{e.points} pts</span>
+                <span className={`pts ${Number(e.points) > 0 ? 'gain' : 'zero'}`}>+{Number(e.points)} pts</span>
               </div>
             ))}
           </motion.div>
