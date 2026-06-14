@@ -170,6 +170,20 @@ export function StoreProvider({ children }) {
     }
   }, [])
 
+  // Rafraîchissement périodique toutes les 15 s + au retour sur l'onglet.
+  // Le temps réel Supabase reste actif mais échoue parfois en silence :
+  // ce polling garantit que le classement est toujours à jour.
+  useEffect(() => {
+    if (!isOnline) return
+    const id = setInterval(refreshBoard, 15_000)
+    const onVisible = () => { if (document.visibilityState === 'visible') refreshBoard() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [refreshBoard])
+
   // Adopte l'identité créée/récupérée par l'onboarding (inscription ou
   // connexion multi-appareils) et entre dans l'app.
   const adoptPlayer = useCallback((p) => {
