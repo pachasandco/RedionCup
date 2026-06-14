@@ -27,9 +27,9 @@ export const MATCHES = [
 // Barème cumulatif : bon résultat 3 pts, +1 si bon écart, +2 si score exact
 export const MATCH_POINTS = { exact: 5, diff: 4, outcome: 3 }
 export const QUIZ_LEVELS = {
-  facile: { label: 'Facile', emoji: '🟢', perQuestion: 2 },
-  moyen: { label: 'Moyen', emoji: '🟠', perQuestion: 4 },
-  expert: { label: 'Expert', emoji: '🔴', perQuestion: 8 },
+  facile: { label: 'Facile', emoji: '🟢', perQuestion: 0.25 },
+  moyen: { label: 'Moyen', emoji: '🟠', perQuestion: 0.5 },
+  expert: { label: 'Expert', emoji: '🔴', perQuestion: 1 },
 }
 
 export function matchPoints(pred, actual) {
