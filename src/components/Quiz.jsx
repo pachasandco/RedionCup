@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
 import Lottie from 'lottie-react'
 import { useStore } from '../store.jsx'
-import { QUIZ_LEVELS, QUIZ_QUESTIONS_PER_MATCH, getQuizQuestions } from '../data.js'
+import { QUIZ_LEVELS, QUIZ_QUESTIONS_PER_MATCH, getQuizQuestions, MATCH_POINTS } from '../data.js'
 import { isOnline } from '../lib/supabase.js'
 import { pushEvent } from '../lib/onlineSync.js'
 import { notify } from '../lib/notify.js'
@@ -13,7 +13,9 @@ import trophyAnim from '../assets/trophy.json'
 
 // 10 secondes par question : le temps de lire, pas d'aller chercher la réponse
 const QUESTION_TIME = 10
-const LEVEL = QUIZ_LEVELS.quiz
+// Ordre des niveaux : 1 question par niveau dans l'ordre croissant
+const LEVEL_KEYS = ['facile', 'moyen', 'expert']
+const MAX_POINTS = LEVEL_KEYS.reduce((s, k) => s + QUIZ_LEVELS[k].perQuestion, 0)
 
 export default function Quiz({ match, matchIndex, onClose }) {
   const { dispatch, flyPoints, refreshBoard } = useStore()
@@ -42,11 +44,16 @@ export default function Quiz({ match, matchIndex, onClose }) {
     return () => clearInterval(id)
   }, [started, finished, picked, qIndex])
 
+  const levelKey = LEVEL_KEYS[qIndex]
+  const levelInfo = QUIZ_LEVELS[levelKey]
+
   const answer = (choiceIndex) => {
     if (picked !== null) return
     setPicked(choiceIndex)
     const isCorrect = choiceIndex === questions[qIndex].answer
-    const nextCorrect = correct + (isCorrect ? 1 : 0)
+    // Chaque bonne réponse vaut les points du niveau correspondant
+    const earnedThisQ = isCorrect ? QUIZ_LEVELS[LEVEL_KEYS[qIndex]].perQuestion : 0
+    const nextCorrect = correct + earnedThisQ
     if (isCorrect) {
       setCorrect(nextCorrect)
       playQuizCorrect()
@@ -57,14 +64,14 @@ export default function Quiz({ match, matchIndex, onClose }) {
         setQIndex(qIndex + 1)
         setPicked(null)
       } else {
-        const points = nextCorrect * LEVEL.perQuestion
-        dispatch({ type: 'QUIZ_DONE', matchId: match.id, level: 'quiz', correct: nextCorrect, points })
+        const points = nextCorrect
+        dispatch({ type: 'QUIZ_DONE', matchId: match.id, level: 'quiz', correct: null, points })
         flyPoints(points)
-        notify('🧠 Quiz RedionCup', `${nextCorrect}/${QUIZ_QUESTIONS_PER_MATCH} bonnes réponses : +${points} pts !`)
+        notify('🧠 Quiz RedionCup', `Quiz terminé : +${points} pts !`)
         if (isOnline) {
-          pushEvent({ matchId: match.id, type: 'quiz', points, label: `Quiz : ${nextCorrect}/${QUIZ_QUESTIONS_PER_MATCH}` }).then(refreshBoard)
+          pushEvent({ matchId: match.id, type: 'quiz', points, label: `Quiz : ${points}/${MAX_POINTS} pts` }).then(refreshBoard)
         }
-        if (nextCorrect === QUIZ_QUESTIONS_PER_MATCH) {
+        if (points === MAX_POINTS) {
           stadiumFlash()
           confetti({ particleCount: 160, spread: 90, origin: { y: 0.5 }, colors: ['#ffd700', '#22c55e', '#ffffff'] })
         }
@@ -73,7 +80,7 @@ export default function Quiz({ match, matchIndex, onClose }) {
     }, 1000)
   }
 
-  const finalPoints = correct * LEVEL.perQuestion
+  const finalPoints = correct
 
   return (
     <motion.div
@@ -98,10 +105,10 @@ export default function Quiz({ match, matchIndex, onClose }) {
               {match.home.flag} {match.home.name} – {match.away.name} {match.away.flag}
             </p>
             <div className="quiz-intro-card">
-              <div className="quiz-intro-line">📝 {QUIZ_QUESTIONS_PER_MATCH} questions de culture foot</div>
+              <div className="quiz-intro-line">📝 3 questions (1 par difficulté)</div>
               <div className="quiz-intro-line">⏱ {QUESTION_TIME} secondes par question</div>
-              <div className="quiz-intro-line">🎯 +{LEVEL.perQuestion} pt par bonne réponse</div>
-              <div className="quiz-intro-line">🏆 {QUIZ_QUESTIONS_PER_MATCH * LEVEL.perQuestion} pts maximum</div>
+              <div className="quiz-intro-line">🟢 Facile +{QUIZ_LEVELS.facile.perQuestion} · 🟠 Moyenne +{QUIZ_LEVELS.moyen.perQuestion} · 🔴 Difficile +{QUIZ_LEVELS.expert.perQuestion}</div>
+              <div className="quiz-intro-line">🏆 {MAX_POINTS} pts maximum</div>
             </div>
             <p className="level-warning">
               ⚠️ Pas le temps d'aller chercher les réponses — fais confiance à ta culture foot !
@@ -141,7 +148,10 @@ export default function Quiz({ match, matchIndex, onClose }) {
                 exit={{ opacity: 0, x: -40 }}
                 transition={{ duration: 0.25 }}
               >
-                <p className="quiz-q">Question {qIndex + 1}/{QUIZ_QUESTIONS_PER_MATCH} — {questions[qIndex].q}</p>
+                <p className="quiz-q">
+                  <span style={{fontSize:'0.8rem',opacity:0.7}}>{levelInfo.emoji} {levelInfo.label} · +{levelInfo.perQuestion} pt</span>
+                  <br />{questions[qIndex].q}
+                </p>
                 <div className="quiz-choices">
                   {questions[qIndex].choices.map((choice, i) => {
                     let cls = 'choice'
@@ -172,12 +182,12 @@ export default function Quiz({ match, matchIndex, onClose }) {
         {/* Étape 3 : résultat */}
         {finished && (
           <motion.div className="quiz-result" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
-            {correct === QUIZ_QUESTIONS_PER_MATCH ? (
+            {finalPoints === MAX_POINTS ? (
               <Lottie animationData={trophyAnim} loop style={{ width: 120, height: 120, margin: '0 auto' }} />
             ) : (
-              <div className="big">{correct >= 3 ? '🎉' : correct >= 2 ? '👍' : correct === 1 ? '😅' : '😬'}</div>
+              <div className="big">{finalPoints >= 1.5 ? '🎉' : finalPoints >= 0.75 ? '👍' : finalPoints > 0 ? '😅' : '😬'}</div>
             )}
-            <h3>{correct}/{QUIZ_QUESTIONS_PER_MATCH} bonnes réponses</h3>
+            <h3>+{finalPoints} / {MAX_POINTS} pts</h3>
             <motion.p
               className="gained"
               initial={{ scale: 0 }}

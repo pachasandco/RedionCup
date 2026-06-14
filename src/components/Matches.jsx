@@ -206,7 +206,7 @@ export default function Matches() {
       </h2>
       <p className="section-sub">
         Pronostique le score, lance le coup d’envoi, puis joue le quiz pour gagner des points bonus.
-        Barème : bon résultat +{MATCH_POINTS.outcome} pts · score exact +{MATCH_POINTS.exact} pts · quiz {QUIZ_QUESTIONS_PER_MATCH}×{QUIZ_LEVELS.quiz.perQuestion} pt = {QUIZ_QUESTIONS_PER_MATCH * QUIZ_LEVELS.quiz.perQuestion} pts max.
+        Barème : bon résultat +{MATCH_POINTS.outcome} pts · score exact +{MATCH_POINTS.exact} pts · quiz max {Object.values(QUIZ_LEVELS).reduce((s,l)=>s+l.perQuestion,0)} pts (🟢+{QUIZ_LEVELS.facile.perQuestion} 🟠+{QUIZ_LEVELS.moyen.perQuestion} 🔴+{QUIZ_LEVELS.expert.perQuestion}).
         {liveError && ` ⚠️ Données live indisponibles (${liveError}) : matchs de démo affichés.`}
       </p>
       {matches.map((m, i) => (

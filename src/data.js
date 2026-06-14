@@ -25,12 +25,14 @@ export const MATCHES = [
 
 // ---------- Barème ----------
 // Pronostic : bon résultat 3 pts, score exact 6 pts (différence de buts supprimée)
-// Quiz : 4 questions × 0,5 pt = 2 pts max (0, 0.5, 1, 1.5 ou 2 pts selon les bonnes réponses)
+// Quiz : 1 question par niveau → facile 0.25 + moyenne 0.5 + difficile 1.5 = 2.25 pts max
 export const MATCH_POINTS = { exact: 6, outcome: 3 }
 export const QUIZ_LEVELS = {
-  quiz: { label: 'Quiz', emoji: '🧠', perQuestion: 0.5 },
+  facile: { label: 'Facile',    emoji: '🟢', perQuestion: 0.25 },
+  moyen:  { label: 'Moyenne',   emoji: '🟠', perQuestion: 0.5  },
+  expert: { label: 'Difficile', emoji: '🔴', perQuestion: 1.5  },
 }
-export const QUIZ_QUESTIONS_PER_MATCH = 4
+export const QUIZ_QUESTIONS_PER_MATCH = 3 // 1 question par niveau
 
 export function matchPoints(pred, actual) {
   if (!pred) return { points: 0, label: 'Pas de pronostic' }
@@ -64,45 +66,56 @@ export function botPrediction(botId, matchId) {
 
 export function botQuizResult(botId, matchId) {
   const rnd = seededRandom('quiz' + botId + matchId)
-  let correct = 0
-  for (let i = 0; i < QUIZ_QUESTIONS_PER_MATCH; i++) if (rnd() < 0.55) correct++
-  return { level: 'quiz', correct, points: correct * QUIZ_LEVELS.quiz.perQuestion }
+  const rates = { facile: 0.8, moyen: 0.55, expert: 0.35 }
+  let points = 0
+  for (const [level, rate] of Object.entries(rates)) {
+    if (rnd() < rate) points += QUIZ_LEVELS[level].perQuestion
+  }
+  return { level: 'quiz', correct: null, points }
 }
 
-// ---------- Banque de questions (mélange facile/moyen/expert) ----------
-const BANK = [
-  { q: "Combien d'équipes participent à la Coupe du Monde 2026 ?", choices: ['32', '40', '48', '64'], answer: 2 },
-  { q: 'Quel pays a remporté la Coupe du Monde 2022 ?', choices: ['France', 'Argentine', 'Brésil', 'Croatie'], answer: 1 },
-  { q: 'Qui a remporté la Coupe du Monde 2018 ?', choices: ['Allemagne', 'Croatie', 'France', 'Belgique'], answer: 2 },
-  { q: 'Quels pays organisent la Coupe du Monde 2026 ?', choices: ['USA, Canada, Mexique', 'USA, Brésil, Mexique', 'Canada, Mexique, Cuba', 'USA seulement'], answer: 0 },
-  { q: 'Combien de fois le Brésil a-t-il gagné la Coupe du Monde ?', choices: ['3', '4', '5', '6'], answer: 2 },
-  { q: "Quelle est la durée réglementaire d'un match ?", choices: ['80 min', '90 min', '100 min', '120 min'], answer: 1 },
-  { q: 'Quelle couleur de carton signifie une expulsion ?', choices: ['Jaune', 'Rouge', 'Bleu', 'Noir'], answer: 1 },
-  { q: 'Dans combien de pays se joue la Coupe du Monde 2026 ?', choices: ['1', '2', '3', '4'], answer: 2 },
-  { q: 'Qui a marqué le but vainqueur de la finale 2014 ?', choices: ['Thomas Müller', 'Mario Götze', 'Mesut Özil', 'André Schürrle'], answer: 1 },
-  { q: 'Combien de stades accueillent la Coupe du Monde 2026 ?', choices: ['12', '14', '16', '20'], answer: 2 },
-  { q: "Qui est le meilleur buteur de l'histoire de la Coupe du Monde ?", choices: ['Ronaldo', 'Pelé', 'Miroslav Klose', 'Gerd Müller'], answer: 2 },
-  { q: 'Quel pays a organisé la première Coupe du Monde en 1930 ?', choices: ['Brésil', 'Italie', 'Uruguay', 'France'], answer: 2 },
-  { q: 'Combien de buts Mbappé a-t-il marqués en finale 2022 ?', choices: ['1', '2', '3', '4'], answer: 2 },
-  { q: 'Quel pays a perdu 3 finales sans jamais gagner ?', choices: ['Hongrie', 'Pays-Bas', 'Tchécoslovaquie', 'Suède'], answer: 1 },
-  { q: 'Où se joue la finale de la Coupe du Monde 2026 ?', choices: ['Los Angeles', 'Mexico', 'New York / New Jersey', 'Dallas'], answer: 2 },
-  { q: 'Combien de groupes compte la phase de groupes 2026 ?', choices: ['8', '10', '12', '16'], answer: 2 },
-  { q: 'Qui a été meilleur buteur de la Coupe du Monde 2022 ?', choices: ['Messi', 'Giroud', 'Mbappé', 'Álvarez'], answer: 2 },
-  { q: 'Quel fut le score de la finale 1958 ?', choices: ['Brésil 5-2 Suède', 'Brésil 3-1 Suède', 'Brésil 4-2 Suède', 'Brésil 2-0 Suède'], answer: 0 },
-  { q: "Qui a marqué le but le plus rapide de l'histoire de la CdM (11 s) ?", choices: ['Bryan Robson', 'Hakan Şükür', 'Clint Dempsey', 'Václav Mašek'], answer: 1 },
-  { q: 'Quel est le seul joueur à avoir gagné 3 Coupes du Monde ?', choices: ['Cafu', 'Maradona', 'Pelé', 'Beckenbauer'], answer: 2 },
-  { q: 'Quelle est la plus large victoire en Coupe du Monde ?', choices: ['Hongrie 10-1 Salvador', 'Allemagne 8-0 Arabie S.', 'Hongrie 9-0 Corée', 'Yougoslavie 9-0 Zaïre'], answer: 0 },
-  { q: 'Qui a gagné le tout premier match de la CdM 1930 ?', choices: ['Uruguay', 'Argentine', 'France', 'USA'], answer: 2 },
-  { q: 'Quel joueur a marqué dans 5 Coupes du Monde différentes ?', choices: ['Messi', 'Cristiano Ronaldo', 'Klose', 'Pelé'], answer: 1 },
-  { q: 'En quelle année les cartons ont-ils été introduits en CdM ?', choices: ['1962', '1966', '1970', '1974'], answer: 2 },
-  { q: 'Combien de spectateurs (record) pour Brésil-Uruguay 1950 ?', choices: ['~150 000', '~174 000', '~199 000', '~210 000'], answer: 2 },
-  { q: "Quel gardien a remporté le Ballon d'Or de la CdM 2002 ?", choices: ['Gianluigi Buffon', 'Oliver Kahn', 'Marcos', 'Rüştü Reçber'], answer: 1 },
-]
+// ---------- Banque de questions par niveau ----------
+const BANK = {
+  facile: [
+    { q: "Combien d'équipes participent à la Coupe du Monde 2026 ?", choices: ['32', '40', '48', '64'], answer: 2 },
+    { q: 'Quel pays a remporté la Coupe du Monde 2022 ?', choices: ['France', 'Argentine', 'Brésil', 'Croatie'], answer: 1 },
+    { q: 'Qui a remporté la Coupe du Monde 2018 ?', choices: ['Allemagne', 'Croatie', 'France', 'Belgique'], answer: 2 },
+    { q: 'Quels pays organisent la Coupe du Monde 2026 ?', choices: ['USA, Canada, Mexique', 'USA, Brésil, Mexique', 'Canada, Mexique, Cuba', 'USA seulement'], answer: 0 },
+    { q: 'Combien de fois le Brésil a-t-il gagné la Coupe du Monde ?', choices: ['3', '4', '5', '6'], answer: 2 },
+    { q: "Quelle est la durée réglementaire d'un match ?", choices: ['80 min', '90 min', '100 min', '120 min'], answer: 1 },
+    { q: 'Quelle couleur de carton signifie une expulsion ?', choices: ['Jaune', 'Rouge', 'Bleu', 'Noir'], answer: 1 },
+    { q: 'Dans combien de pays se joue la Coupe du Monde 2026 ?', choices: ['1', '2', '3', '4'], answer: 2 },
+    { q: "Combien de joueurs d'une équipe sont sur le terrain ?", choices: ['9', '10', '11', '12'], answer: 2 },
+  ],
+  moyen: [
+    { q: 'Qui a marqué le but vainqueur de la finale 2014 ?', choices: ['Thomas Müller', 'Mario Götze', 'Mesut Özil', 'André Schürrle'], answer: 1 },
+    { q: 'Combien de stades accueillent la Coupe du Monde 2026 ?', choices: ['12', '14', '16', '20'], answer: 2 },
+    { q: "Qui est le meilleur buteur de l'histoire de la Coupe du Monde ?", choices: ['Ronaldo', 'Pelé', 'Miroslav Klose', 'Gerd Müller'], answer: 2 },
+    { q: 'Quel pays a organisé la première Coupe du Monde en 1930 ?', choices: ['Brésil', 'Italie', 'Uruguay', 'France'], answer: 2 },
+    { q: 'Combien de buts Mbappé a-t-il marqués en finale 2022 ?', choices: ['1', '2', '3', '4'], answer: 2 },
+    { q: 'Quel pays a perdu 3 finales sans jamais gagner ?', choices: ['Hongrie', 'Pays-Bas', 'Tchécoslovaquie', 'Suède'], answer: 1 },
+    { q: 'Où se joue la finale de la Coupe du Monde 2026 ?', choices: ['Los Angeles', 'Mexico', 'New York / New Jersey', 'Dallas'], answer: 2 },
+    { q: 'Combien de groupes compte la phase de groupes 2026 ?', choices: ['8', '10', '12', '16'], answer: 2 },
+    { q: 'Qui a été meilleur buteur de la Coupe du Monde 2022 ?', choices: ['Messi', 'Giroud', 'Mbappé', 'Álvarez'], answer: 2 },
+  ],
+  expert: [
+    { q: 'Quel fut le score de la finale 1958 ?', choices: ['Brésil 5-2 Suède', 'Brésil 3-1 Suède', 'Brésil 4-2 Suède', 'Brésil 2-0 Suède'], answer: 0 },
+    { q: "Qui a marqué le but le plus rapide de l'histoire de la CdM (11 s) ?", choices: ['Bryan Robson', 'Hakan Şükür', 'Clint Dempsey', 'Václav Mašek'], answer: 1 },
+    { q: 'Quel est le seul joueur à avoir gagné 3 Coupes du Monde ?', choices: ['Cafu', 'Maradona', 'Pelé', 'Beckenbauer'], answer: 2 },
+    { q: 'Quelle est la plus large victoire en Coupe du Monde ?', choices: ['Hongrie 10-1 Salvador', 'Allemagne 8-0 Arabie S.', 'Hongrie 9-0 Corée', 'Yougoslavie 9-0 Zaïre'], answer: 0 },
+    { q: 'Qui a gagné le tout premier match de la CdM 1930 ?', choices: ['Uruguay', 'Argentine', 'France', 'USA'], answer: 2 },
+    { q: 'Quel joueur a marqué dans 5 Coupes du Monde différentes ?', choices: ['Messi', 'Cristiano Ronaldo', 'Klose', 'Pelé'], answer: 1 },
+    { q: 'En quelle année les cartons ont-ils été introduits en CdM ?', choices: ['1962', '1966', '1970', '1974'], answer: 2 },
+    { q: 'Combien de spectateurs (record) pour Brésil-Uruguay 1950 ?', choices: ['~150 000', '~174 000', '~199 000', '~210 000'], answer: 2 },
+    { q: "Quel gardien a remporté le Ballon d'Or de la CdM 2002 ?", choices: ['Gianluigi Buffon', 'Oliver Kahn', 'Marcos', 'Rüştü Reçber'], answer: 1 },
+  ],
+}
 
-// 4 questions différentes par match, piochées dans toute la banque
+// 1 question par niveau dans l'ordre facile → moyenne → difficile
 export function getQuizQuestions(matchIndex) {
-  const out = []
-  for (let i = 0; i < QUIZ_QUESTIONS_PER_MATCH; i++)
-    out.push(BANK[(matchIndex * QUIZ_QUESTIONS_PER_MATCH + i) % BANK.length])
-  return out
+  return [
+    BANK.facile[matchIndex % BANK.facile.length],
+    BANK.moyen[matchIndex  % BANK.moyen.length],
+    BANK.expert[matchIndex % BANK.expert.length],
+  ]
 }
