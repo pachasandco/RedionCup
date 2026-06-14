@@ -177,6 +177,11 @@ body {
 .quiz-timeout {
   color: var(--red); font-weight: 800; font-size: 0.9rem; margin-bottom: 10px; text-align: center;
 }
+.quiz-intro-card {
+  background: var(--card); border: 1px solid var(--card-border); border-radius: 14px;
+  padding: 14px 16px; margin: 16px 0; display: flex; flex-direction: column; gap: 8px;
+}
+.quiz-intro-line { font-size: 0.95rem; font-weight: 600; }
 .quiz-q { font-size: 1.1rem; font-weight: 700; margin-bottom: 18px; min-height: 56px; }
 .quiz-choices { display: grid; gap: 10px; }
 .choice {

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
 import { useStore } from '../store.jsx'
-import { matchPoints, MATCH_POINTS } from '../data.js'
+import { matchPoints, MATCH_POINTS, QUIZ_LEVELS, QUIZ_QUESTIONS_PER_MATCH } from '../data.js'
 import { isOnline } from '../lib/supabase.js'
 import { pushEvent, savePrediction } from '../lib/onlineSync.js'
 import { notify } from '../lib/notify.js'
@@ -206,7 +206,7 @@ export default function Matches() {
       </h2>
       <p className="section-sub">
         Pronostique le score, lance le coup d’envoi, puis joue le quiz pour gagner des points bonus.
-        Barème : bon résultat +{MATCH_POINTS.outcome} · +1 si bon écart de buts · +2 si score exact.
+        Barème : bon résultat +{MATCH_POINTS.outcome} pts · score exact +{MATCH_POINTS.exact} pts · quiz {QUIZ_QUESTIONS_PER_MATCH}×{QUIZ_LEVELS.quiz.perQuestion} pt = {QUIZ_QUESTIONS_PER_MATCH * QUIZ_LEVELS.quiz.perQuestion} pts max.
         {liveError && ` ⚠️ Données live indisponibles (${liveError}) : matchs de démo affichés.`}
       </p>
       {matches.map((m, i) => (
