@@ -141,6 +141,21 @@ export async function fetchBoard() {
   }
 }
 
+// --- Quiz déjà faits (pour bloquer la reprise sur un autre appareil) ---
+
+export async function fetchMyQuizDone() {
+  if (!isOnline) return []
+  const player = getLocalPlayer()
+  if (!player) return []
+  const { data, error } = await supabase
+    .from('events')
+    .select('match_id')
+    .eq('player_id', player.id)
+    .eq('type', 'quiz')
+  if (error) throw error
+  return data.map((e) => e.match_id)
+}
+
 // --- Synchronisation des pronostics entre appareils ---
 
 export async function fetchMyPredictions() {
