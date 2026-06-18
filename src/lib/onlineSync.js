@@ -101,15 +101,21 @@ export async function ensurePlayer() {
   return player
 }
 
+// Plafonds défensifs : un cache obsolète ne peut pas envoyer des points impossibles
+const MAX_MATCH_POINTS = 6   // score exact
+const MAX_QUIZ_POINTS  = 2.25 // 3 questions × max difficile
+
 export async function pushEvent({ matchId, type, points, label }) {
   if (!isOnline) return
   const player = getLocalPlayer()
   if (!player) return
+  const cap = type === 'match' ? MAX_MATCH_POINTS : MAX_QUIZ_POINTS
+  const safePoints = Math.min(Number(points), cap)
   const { error } = await supabase.from('events').insert({
     player_id: player.id,
     match_id: matchId,
     type,
-    points,
+    points: safePoints,
     label,
   })
   // 23505 = déjà validé depuis un autre appareil : pas un problème.
