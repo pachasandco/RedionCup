@@ -160,29 +160,46 @@ export function StoreProvider({ children }) {
   // Vrais matchs de Coupe du Monde — et validation automatique des
   // matchs terminés : dès qu'un score est publié, les points sont
   // calculés et poussés en base sans que le joueur ait à cliquer.
+  // Polling toutes les 60 s pour capter les nouveaux scores sans rechargement.
   useEffect(() => {
     if (!hasLiveData) return
-    fetchWorldCupMatches()
-      .then((ms) => {
-        if (!ms?.length) { setLiveError('Aucun match retourné'); return }
-        setMatches(ms)
-        // Validation auto : matchs avec un score officiel, pas encore joués
-        // localement — on recalcule avec le prono local actuel.
-        const toAutoPlay = ms.filter((m) => m.actual && !state.played.includes(m.id))
-        if (toAutoPlay.length === 0) return
-        // On utilise un snapshot des pronos locaux actuels (state est figé ici)
-        const localPreds = JSON.parse(localStorage.getItem('redioncup-v1') || '{}').predictions ?? {}
-        for (const m of toAutoPlay) {
-          const pred = localPreds[m.id]
-          const result = matchPoints(pred, m.actual)
-          dispatch({ type: 'PLAY_MATCH', matchId: m.id, actual: m.actual })
-          if (isOnline && player) {
-            pushEvent({ matchId: m.id, type: 'match', points: result.points, label: result.label })
-          }
+
+    const loadAndPlay = async () => {
+      let ms
+      try {
+        ms = await fetchWorldCupMatches()
+      } catch (e) {
+        setLiveError(e.message)
+        return
+      }
+      if (!ms?.length) { setLiveError('Aucun match retourné'); return }
+      setLiveError(null)
+      setMatches(ms)
+
+      // Snapshot de state actuel depuis localStorage pour éviter la closure figée
+      const saved = JSON.parse(localStorage.getItem('redioncup-v1') || '{}')
+      const playedNow = saved.played ?? []
+      const localPreds = saved.predictions ?? {}
+
+      const toAutoPlay = ms.filter((m) => m.actual && !playedNow.includes(m.id))
+      if (toAutoPlay.length === 0) return
+
+      const localPlayer = getLocalPlayer()
+      for (const m of toAutoPlay) {
+        const pred = localPreds[m.id]
+        const result = matchPoints(pred, m.actual)
+        dispatch({ type: 'PLAY_MATCH', matchId: m.id, actual: m.actual })
+        if (isOnline && localPlayer) {
+          pushEvent({ matchId: m.id, type: 'match', points: result.points, label: result.label })
         }
-        if (isOnline) refreshBoard()
-      })
-      .catch((e) => setLiveError(e.message))
+      }
+      if (isOnline) refreshBoard()
+    }
+
+    loadAndPlay()
+    // Polling toutes les 60 s : détecte les nouveaux scores live sans F5
+    const interval = setInterval(loadAndPlay, 60_000)
+    return () => clearInterval(interval)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player]) // se relance quand l'identité du joueur est connue
 
