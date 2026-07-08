@@ -127,22 +127,17 @@ export async function pushEvent({ matchId, type, points, label }) {
   }
 }
 
-// Récupère joueurs + scores agrégés.
-// Lève une erreur si la base est injoignable, pour que l'app retombe
-// proprement sur le mode démo local.
+// Récupère joueurs + scores agrégés via RPC (SUM en SQL côté serveur).
+// Évite la limite de 1000 lignes de PostgREST qui tronquait les résultats
+// et faisait disparaître les points les plus récents du classement.
 export async function fetchBoard() {
-  const [playersRes, eventsRes] = await Promise.all([
-    supabase.from('players').select('id, name, avatar'),
-    supabase.from('events').select('player_id, points'),
-  ])
-  if (playersRes.error) throw playersRes.error
-  if (eventsRes.error) throw eventsRes.error
   const me = getLocalPlayer()
+  const { data, error } = await supabase.rpc('fetch_board')
+  if (error) throw error
   const scores = {}
-  for (const p of playersRes.data) scores[p.id] = 0
-  for (const e of eventsRes.data) scores[e.player_id] = (scores[e.player_id] ?? 0) + e.points
+  for (const row of data) scores[row.id] = row.total_points
   return {
-    players: playersRes.data.map((p) => ({ ...p, isUser: p.id === me?.id })),
+    players: data.map((row) => ({ id: row.id, name: row.name, avatar: row.avatar, isUser: row.id === me?.id })),
     scores,
   }
 }
