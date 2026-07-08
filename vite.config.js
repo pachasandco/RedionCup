@@ -8,6 +8,7 @@ export default defineConfig({
     // derrière le domaine *.up.railway.app : on accepte tous les hôtes.
     allowedHosts: true,
     headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',
       'Referrer-Policy': 'strict-origin-when-cross-origin',

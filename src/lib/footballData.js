@@ -139,7 +139,9 @@ async function fetchEspnScores() {
 
 export async function fetchWorldCupMatches() {
   if (!hasLiveData) return null
-  const [res, espnScores] = await Promise.all([fetch(DATA_URL), fetchEspnScores()])
+  // ?t= évite le cache navigateur sur raw.githubusercontent.com (TTL 5 min sinon)
+  const bust = `?t=${Math.floor(Date.now() / 60000)}`
+  const [res, espnScores] = await Promise.all([fetch(DATA_URL + bust), fetchEspnScores()])
   if (!res.ok) throw new Error(`openfootball : HTTP ${res.status}`)
   const data = await res.json()
 
